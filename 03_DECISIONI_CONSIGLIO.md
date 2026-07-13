@@ -3,7 +3,7 @@
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale (Mac Mini M4 in produzione, sviluppo su Claude Desktop, repo GitHub).
 **Stato:** Approvato dal Chairman.
 **Uso:** questo file è il registro delle decisioni architetturali (ADR — Architecture Decision Records). I prompt di sprint lo citano come fonte vincolante: **nessuno sprint può contraddire un ADR senza aprirne uno nuovo che lo sostituisca esplicitamente.**
-**Fonti:** verdetti C1–C6 e brief di ricerca R1/R2 in `/mnt/agents/output/council/`.
+**Fonti:** verdetti C1–C6 e brief di ricerca R1/R2 in `08_VERBALI_CONSIGLI/`.
 
 > Convenzione: ogni decisione ha un identificativo **ADR-NN** con numerazione continua su tutti i consigli. Gli ADR sono normativi; le "Alternative scartate" spiegano il perché; i "Punti aperti" elencano verifiche esterne **obbligatorie prima della messa in produzione del modulo interessato**.
 

@@ -1,6 +1,6 @@
 # 05 — Roadmap Sprint — Gestionale Immobiliare + JARVIS
 
-**Stato:** approvata. **Fonte:** verdetti dei consigli C1–C6 e brief R1/R2 (`/mnt/agents/output/council/`), registro decisioni in `03_DECISIONI_CONSIGLIO.md`.
+**Stato:** approvata. **Fonte:** verdetti dei consigli C1–C6 e brief R1/R2 (`08_VERBALI_CONSIGLI/`), registro decisioni in `03_DECISIONI_CONSIGLIO.md`.
 
 ## Come si legge questa roadmap
 
@@ -47,7 +47,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 **Cosa entra:**
 - Repo GitHub inizializzato, `REGOLE.md` scritto/approvato + `CLAUDE.md` che ci punta (doppia fonte, vedi file `02` sezione A).
 - Ambiente dev sul MacBook: Homebrew, Python, LibreOffice, font Liberation, virtualenv, dipendenze base.
-- Cartella dati `~/Gestionale/` con struttura (`db.sqlite`, `documenti/`, `templates/`).
+- Cartella dati `~/Gestionale/` con la struttura completa di `04_ARCHITETTURA.md` §2 (`db.sqlite`, `templates/`, `documenti/`, `backup/`, `logs/`).
 - Astrazione provider LLM (SDK OpenAI con `base_url` e `model` da configurazione) + test di connessione al provider cloud.
 - Skeleton eval suite: cartella `evals/` con primi casi di test in italiano e script che produce un report.
 - Bozza script di backup con `sqlite3 .backup` + copia su destinazione offsite (manuale, non ancora schedulato).

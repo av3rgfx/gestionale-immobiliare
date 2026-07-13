@@ -2,7 +2,7 @@
 
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale.
 **Ambiente di produzione:** Mac Mini M4, rete LAN dell'agenzia (2-5 utenti).
-**Ambiente di sviluppo:** sessioni su Claude Desktop, repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
+**Ambiente di sviluppo:** sessioni nella sezione **Code** di Claude Desktop (ADR-13), repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
 **Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46).
 
 ---
@@ -66,7 +66,7 @@ Diagramma dei componenti:
 │  ├─ CRUD anagrafiche/immobili/pratiche/contratti             │
 │  ├─ Motore template (docxtpl) ──► LibreOffice ──► PDF        │
 │  ├─ Pipeline OCR/adempimenti (MRZ, APE, PaddleOCR-VL)        │
-│  ├─ Scheduler (cron): scadenze, reminder, backup, DMS        │
+│  ├─ Scheduler (launchd): scadenze, reminder, backup, DMS     │
 │  ├─ Audit log (immutabile)                                   │
 │  └─ JARVIS gateway ──► Ollama /v1 (locale) o API cloud (dev) │
 └───────────────┬─────────────────────────────────────────────┘
@@ -225,7 +225,7 @@ Regole operative:
 Canale unico v1: **email** (ADR-23). L'email raccoglie **intenzioni**, non produce effetti legali: la disdetta formale resta raccomandata AR/PEC e il messaggio lo dice esplicitamente (ADR-27).
 
 ```
-cron giornaliero (idempotente, con retry)
+job giornaliero via launchd (idempotente, con retry)
    │
    ▼
 calcolo scadenze: Trigger 1 (fine triennio −7 mesi)
@@ -245,7 +245,7 @@ routing scenari: A Chiusura/Cessazione (stop; "no" proprietario → lead vendita
 
 Presidi non negoziabili (ADR-29):
 
-- **Cron idempotente con retry**: riesecuzioni non duplicano invii.
+- **Job schedulato (launchd) idempotente con retry**: riesecuzioni non duplicano invii (il "cron" di ADR-29).
 - **Dead man's switch**: un job che non gira genera **allarme** (le finestre legali bruciate in silenzio sono il fallimento della feature).
 - **Task operatore automatico** a scadenza −6 mesi e **dashboard "scadenze senza risposta"**.
 - **Deliverability**: SPF/DKIM/DMARC configurati + gestione bounce; email obsolete = trigger muto → verifica periodica dei recapiti.
@@ -303,7 +303,7 @@ Regole operative:
 
 ### 8.1 Backup (ADR-06)
 ```
-cron notturno: sqlite3 .backup → ~/Gestionale/backup/db_YYYYMMDD.sqlite
+job notturno (launchd): sqlite3 .backup → ~/Gestionale/backup/db_YYYYMMDD.sqlite
                     │ (snapshot consistente, MAI copia a caldo di -wal/-shm)
                     ▼
           copia offsite CIFRATA (fuori dall'edificio)
