@@ -1,0 +1,6 @@
+{
+  "id": "ape",
+  "domanda": "Come si chiama, in sigla, l'attestato che certifica la classe energetica di un immobile in Italia? Rispondi solo con la sigla.",
+  "parole_attese": ["APE"],
+  "nota": "Dominio immobili: la sezione APE e' obbligatoria nel modello dati (04 par. 3.2)."
+}

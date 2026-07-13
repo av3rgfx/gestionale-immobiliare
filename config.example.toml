@@ -1,0 +1,22 @@
+# Configurazione del provider LLM (ADR-05, ADR-48).
+#
+# COME SI USA (una volta sola, sul Mac):
+#   1) copia questo file:  cp config.example.toml config.toml
+#   2) compila i tre valori qui sotto
+#   (config.toml NON finisce su Git: contiene la tua chiave segreta)
+#
+# REGOLA NON NEGOZIABILE (ADR-05/ADR-14): verso i provider cloud passano
+# SOLO dati sintetici o anonimizzati. MAI dati reali dei clienti.
+
+[llm]
+# --- SVILUPPO: provider cloud con endpoint compatibile OpenAI ---
+# base_url e nome del modello li trovi nella documentazione del tuo provider.
+base_url = ""   # l'indirizzo dell'endpoint del provider (di solito finisce con /v1)
+model = ""      # il nome esatto del modello
+api_key = ""    # la tua chiave API (tienila segreta)
+
+# --- PRODUZIONE (da S6, ADR-48): Ollama locale sul Mac Mini ---
+# Per passare al modello locale basta sostituire i tre valori sopra con questi:
+# base_url = "http://localhost:11434/v1"
+# model = "<modello locale verificato prima di S6 — vedi ADR-48>"
+# api_key = "ollama"   # Ollama non la usa, ma il campo deve esserci

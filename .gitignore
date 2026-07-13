@@ -1,0 +1,6 @@
+# Segreti e ambiente locale — non finiscono mai su Git
+config.toml
+.venv/
+__pycache__/
+*.pyc
+.DS_Store

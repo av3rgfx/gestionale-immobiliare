@@ -10,6 +10,7 @@ Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM
 | `C4_verdetto.md` | Scadenze locazioni 3+2: doppio trigger, email, ciclo chiuso |
 | `C5_verdetto.md` | OCR, MRZ, matrice adempimenti, APE, GDPR |
 | `C6_verdetto.md` | Ruolo Proprietario, movimenti, compliance |
+| `C7_verdetto.md` | Revisione della progettazione prima dello sviluppo (Sprint 0): ADR-47/48/49 |
 | `R1_skill_brief.md` | Verifica fattuale delle skill citate (con fonti) |
 | `R2_stack_brief.md` | Verifica fattuale stack tecnico e normativa (con fonti) |
 
