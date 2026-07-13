@@ -11,7 +11,12 @@ Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM
 | `C5_verdetto.md` | OCR, MRZ, matrice adempimenti, APE, GDPR |
 | `C6_verdetto.md` | Ruolo Proprietario, movimenti, compliance |
 | `C7_verdetto.md` | Revisione della progettazione prima dello sviluppo (Sprint 0): ADR-47/48/49 |
+| `C8_verdetto.md` | JARVIS assistente personale del Proprietario (memoria, procedure, automazioni): ADR-50…54 |
 | `R1_skill_brief.md` | Verifica fattuale delle skill citate (con fonti) |
 | `R2_stack_brief.md` | Verifica fattuale stack tecnico e normativa (con fonti) |
+| `R3_memoria_brief.md` | Verifica fattuale memoria personale/RAG locale per JARVIS (con fonti) |
+| `R4_automazioni_brief.md` | Verifica fattuale motori di automazione e pattern sicuri (con fonti) |
+| `R5_inference_brief.md` | Verifica fattuale engine DS4/antirez e quantizzazione dinamica (con fonti) |
+| `R6_hardware_brief.md` | Verifica fattuale hardware di produzione: Mac, alternative, prezzi 2026 (con fonti) |
 
 Il registro decisioni operativo è `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46): in caso di conflitto tra questi verbali e gli ADR, **vincono gli ADR**.

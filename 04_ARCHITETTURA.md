@@ -146,18 +146,32 @@ Riga economica **auto-generata** alla firma del contratto (ADR-40, ADR-41).
 ### 3.11 AuditLog *(immutabile)*
 - Chi (utente), cosa (entità + azione + diff dei campi chiave), quando, da quale sessione.
 - **Versione del template** e **versione del modello LLM** coinvolti nell'azione (quando rilevante) — ADR-08.
-- Include: approvazioni HITL, conferme invio email, correzioni OCR (metrica accuracy — ADR-34), consultazioni di etichette compliance (ADR-45), consultazioni/download delle scansioni di consensi e documenti (verbale C7).
+- Include: approvazioni HITL, conferme invio email, correzioni OCR (metrica accuracy — ADR-34), consultazioni di etichette compliance (ADR-45), consultazioni/download delle scansioni di consensi e documenti (verbale C7), consultazioni della chat JARVIS ed esecuzioni delle automazioni (ADR-50, ADR-53).
 
 ### 3.12 Task
 Compito operativo generato dal sistema, sempre visibile finché non chiuso (verbale C7).
 - Tipo, riferimento (entità + id), assegnatario (utente o ruolo), data scadenza, stato (`aperto` / `completato`), esito/nota.
-- Usato da: scadenze locazioni (ADR-29), adeguata verifica AML all'apertura pratica (ADR-44), riconciliazione mensile (ADR-46), verifica autenticità APE (ADR-37), presidio APE (§3.3), test di ripristino backup (ADR-06).
+- Usato da: scadenze locazioni (ADR-29), adeguata verifica AML all'apertura pratica (ADR-44), riconciliazione mensile (ADR-46), verifica autenticità APE (ADR-37), presidio APE (§3.3), test di ripristino backup (ADR-06), proposte di JARVIS in coda «Da approvare» e azioni delle automazioni (ADR-50, ADR-53 — Fase 2).
+
+### 3.13 Ricordo *(Fase 2 — S9)*
+Memoria personale del Proprietario, «Cose da ricordare» (ADR-51).
+- Testo dettato e confermato, categoria, **soggetto collegato** (se nomina un terzo — esercitabilità artt. 15-17 GDPR), `valid_from`/`superseded_by` per le correzioni.
+- Indici: FTS5 + embedding (sqlite-vec a versione bloccata, modello `bge-m3` via Ollama).
+- «Dimentica» = cancellazione fisica del testo; in AuditLog resta solo l'evento.
+
+### 3.14 Automazione *(Fase 2 — S9)*
+Regola dichiarativa del Proprietario (ADR-53).
+- **Trigger / condizioni / azione con parametri, tutti da enum chiusi**; presentata come frase «QUANDO… SE… ALLORA…».
+- Stato (`disattivata` / `attiva` / `in_pausa` / `autosospesa`), limite giornaliero anti-tempesta, contatori e data ultima esecuzione.
+- Origine: creata da JARVIS su richiesta o «di sistema» (RLI ADR-43, scadenze ADR-24, esposte nella stessa UI, mai duplicate).
 
 ---
 
 ## 4. Architettura agente JARVIS
 
 JARVIS è un assistente in linguaggio naturale dentro al gestionale. Principio guida: **bocca e orecchie, mai mani** (ADR-02). Capisce l'italiano, interroga i dati, propone; scrive solo attraverso funzioni deterministiche e con conferma umana.
+
+**Accesso (ADR-50):** la chat JARVIS è riservata al **ruolo Proprietario** (permesso di ruolo, mai hardcoded sull'utente). La coda **«Da approvare»** è una schermata separata, visibile per ruolo: ogni proposta di JARVIS diventa un **Task** (§3.12) assegnato all'**unico approvatore competente per tipo di azione** (operatività documentale → Segretaria; email a clienti, dati economici, margini → Proprietario) — mai doppia firma in serie. Le consultazioni della chat (domande, tool invocati, versione modello) finiscono in AuditLog.
 
 ### 4.1 Astrazione provider
 Un unico client LLM con due soli parametri configurabili: **`base_url`** e **`model`**.
@@ -186,13 +200,27 @@ JARVIS propone → funzione deterministica valida OGNI campo
 - Niente "Approva" cieco: il diff mostra cosa cambierà davvero.
 
 ### 4.4 Libreria skill curata (auto-skill)
-- Le "skill" sono **documenti Markdown curati** (procedure operative in italiano: es. "come preparare il pacchetto pratica per una locazione turistica").
-- JARVIS può **proporre** una nuova skill in MD; l'attivazione richiede **approvazione umana** e il file è versionato in **Git** (ADR-04).
-- **MAI** codice auto-generato eseguito: nessuna skill può contenere né invocare codice prodotto dall'LLM. Le skill guidano il comportamento, non estendono il programma.
+- Le "skill" sono **documenti Markdown curati** (procedure operative in italiano: es. "come preparare il pacchetto pratica per una locazione turistica"). **In UI si chiamano «Procedure»** — la parola "skill" non compare mai; le versioni Git si mostrano come «versione 3, approvata il…» (ADR-52).
+- JARVIS può **proporre** una nuova Procedura in MD **solo su richiesta esplicita del Proprietario** (v1); l'attivazione richiede l'approvazione del **solo Proprietario** e il file è versionato in **Git** (ADR-04, ADR-52).
+- **MAI** codice auto-generato eseguito: nessuna Procedura può contenere né invocare codice prodotto dall'LLM. Le Procedure guidano il comportamento, non estendono il programma.
+- Una Procedura **non può allentare l'HITL** (a rifiutarla è il validatore, non l'LLM) e il suo testo **non può derivare da contenuti esterni** (email, documenti — regola anti-avvelenamento, ADR-52).
 
 ### 4.5 Eval suite italiana
 - Dataset di test in italiano (intenti tipici dell'agenzia) costruito su **dati sintetici/anonimizzati**.
 - Eseguita a ogni cambio di modello/prompt e, **da S6** (ADR-48), anche sul modello locale: la metrica di accettazione deve reggere in produzione, non solo in dev.
+
+### 4.6 Memoria personale «Cose da ricordare» (ADR-51 — Fase 2, S9)
+- Entità Ricordo (§3.13) dentro la SQLite esistente: **nessun servizio nuovo** (Graphiti/Neo4j, mem0, GraphRAG scartati — brief R3); backup e cifratura sono quelli già in essere.
+- Nascita di un ricordo: **solo dettatura diretta del Proprietario + conferma esplicita** («Vuoi che ricordi: *X*?»); **mai estrazione automatica da email o documenti** (regola anti-avvelenamento).
+- Recupero: ricerca ibrida (FTS5 per parole chiave + KNN semantico) iniettata nel contesto della chat; per una persona sola la scansione esaustiva è questione di millisecondi.
+- UI: «Ricorda questo», «Dimentica» (cancellazione fisica), «Correggi» (nuova versione, la vecchia resta invalidata); lista sempre consultabile; categorie art. 9 GDPR rifiutate.
+
+### 4.7 Automazioni (ADR-53, ADR-54 — Fase 2, S9/S10)
+- Entità Automazione (§3.14) eseguita **dallo scheduler già esistente** (launchd + job idempotente con dead man's switch, ADR-29): mai un secondo scheduler, mai una seconda webapp (n8n scartato — brief R4).
+- L'LLM **compila solo i parametri** di trigger/condizioni/azioni scelti da **enum chiusi**, validati server-side (Pydantic); mai JSON libero né codice (ADR-04).
+- Ciclo di vita: proposta come frase QUANDO/SE/ALLORA (è il diff di ADR-07) → **dry-run su dati storici** («sarebbe scattata 3 volte, ecco cosa avresti ricevuto») → nasce **disattivata** → conferma esplicita → ogni esecuzione in AuditLog → pausa/elimina a un tap → **anti-tempesta** (oltre il limite giornaliero si autosospende con avviso).
+- Azioni v1: *crea Task*; *notifica a destinatari fissi hardcoded*. Default: un solo digest giornaliero aggregato; notifica immediata solo per regole «urgente».
+- **Trigger email (S10, ADR-54)**: IMAP polling dallo scheduler, **solo mittenti in allowlist**; credenziali solo in **Keychain** (casella dedicata o app password revocabile); la sintesi gira **senza alcun tool esposto all'LLM**; HTML→testo, link non cliccabili, banner «riassunto AI di contenuto non verificato»; retention riassunti ≤ 30 giorni; ogni azione nata da email ripassa da HITL. L'email è input non fidato ("lethal trifecta" — brief R4).
 
 ---
 

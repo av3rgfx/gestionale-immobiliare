@@ -13,7 +13,8 @@
 | Sprint | Ambiente |
 |---|---|
 | Sessione 1 + S0, S1, S3, S4, S5, S7, S8 | **Code** (sezione di Claude Desktop), sulla cartella del repository |
-| S2 e S6 | **Code**, con una deviazione guidata in **Claude Design** per disegnare il prototipo delle schermate, farlo validare da chi userà il gestionale (segretaria/agenti), e poi implementarlo in Code tramite handoff. Il prompt di sprint ti guida passo passo. |
+| S2 e S6 | **Code**, con una deviazione guidata in **Claude Design** per disegnare il prototipo delle schermate, farlo validare da chi userà il gestionale, e poi implementarlo in Code tramite handoff. Il prompt di sprint ti guida passo passo. **Attenzione (ADR-50)**: per la chat JARVIS di S6 il validatore del prototipo è il **Proprietario** (la chat è solo sua), non segretaria/agenti. |
+| S9 e S10 (Fase 2, dopo il go-live) | **Code**; per le schermate nuove («Cose da ricordare», «Automazioni», coda «Da approvare») vale la stessa deviazione in **Claude Design** di S2/S6. |
 
 La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
@@ -39,6 +40,8 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 | Acquisto e configurazione del Mac Mini M4 con Ollama (ADR-48) | prima di S6 | agenzia |
 | DPIA ex art. 35 GDPR in due tempi: **bozza prima di S3**, aggiornamento prima di S7, chiusura formale in S8 (verbale C7) | da S3 in poi | con Claude + eventuale consulente privacy |
 | Conferma retention differenziata immagini documenti (ADR-49) | durante S5 | consulente AML |
+| Addendum DPIA per la memoria personale (ADR-51) | prima di S9 | con Claude + eventuale consulente privacy |
+| Addendum DPIA + informativa per il trattamento email (ADR-54) | prima di S10 | con Claude + eventuale consulente privacy |
 
 ---
 
@@ -213,7 +216,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 **Cosa entra:**
 - **Prototipo in Claude Design (prima del codice UI):** la schermata della chat JARVIS e del pannello approvazioni (diff prima/dopo) viene prima disegnata in Claude Design seguendo la checklist Design di `REGOLE.md`, fatta provare a segretaria/agenti, e solo poi implementata in Code.
-- Chat nell'app con risposte in italiano.
+- Chat nell'app con risposte in italiano, **riservata al ruolo Proprietario** (permesso di ruolo — ADR-50); la coda «Da approvare» è una schermata separata visibile per ruolo.
 - Tool **read-only** sul DB: elenco chiuso di funzioni deterministiche (cerca soggetto, elenca scadenze, stato pratica…) con validazione di ogni campo.
 - Switch provider da configurazione (cloud in dev ↔ locale), nessun endpoint fissato nel codice. **Prerequisito di sprint: Mac Mini M4 acquistato e configurato con Ollama (ADR-48)** — senza, S6 non si chiude.
 - HITL con sostanza: ogni scrittura proposta mostra un **diff leggibile** dei dati chiave; conferma esplicita; tutto in audit log.
@@ -229,6 +232,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Cambi provider nella configurazione e la chat continua a funzionare senza toccare codice.
 - [ ] Lanci la eval suite: report con esiti per caso, archiviato nel repo.
 - [ ] La eval suite gira anche **sul modello locale** (Ollama sul Mac Mini) e il report è archiviato; se fallisce, S7 non parte: si cambia modello, non architettura (ADR-48).
+- [ ] Demo perimetrata al Proprietario + pagina **«cosa NON fa JARVIS»** approvata per iscritto (mitigazione del gap di aspettative — verbale C8).
 
 **Rischi principali:** rubber-stamping ("approvo senza leggere" — mitigato: diff sostanziali, non un pulsante); tool-calling instabile su modelli locali (mitigato: verifica esistenza/benchmark del modello prima; provider cloud in dev); prompt injection (mitigato: elenco chiuso di tool, niente codice generato).
 
@@ -291,15 +295,64 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 ---
 
+## S9 — JARVIS personale *(Fase 2 — dopo il go-live)*
+
+**Obiettivo (una riga):** JARVIS diventa l'assistente personale del Proprietario: ricorda ciò che gli viene dettato ed esegue automazioni approvate.
+
+**Prerequisiti:** go-live di S8 completato; **addendum DPIA** per la memoria personale (verifica esterna).
+
+**Cosa entra:**
+- Memoria **«Cose da ricordare»** (ADR-51): salvataggio solo su conferma («Vuoi che ricordi: X?»), ricerca ibrida, pulsanti «Ricorda questo» / «Dimentica» (cancellazione fisica) / «Correggi», aggancio ai Soggetti per i ricordi su terzi, lista sempre consultabile.
+- **Motore automazioni interno** (ADR-53): entità Automazione, frase QUANDO/SE/ALLORA, prova a vuoto sullo storico, nasce disattivata, conferma esplicita, anti-tempesta, tutto in AuditLog. Azioni v1: crea Task, notifica a destinatari fissi.
+- Coda **«Da approvare»** con approvatore unico per tipo di azione (ADR-50).
+- **Lotto 1 di automazioni pre-costruite** (solo dati già nel DB): digest mattutino dei task, promemoria adeguamento ISTAT, alert canoni non incassati, report settimanale incassi, scadenze certificazioni (APE/caldaia); rassegna settimanale pratiche se resta tempo.
+
+**Cosa NON entra:** trigger email (S10); estrazione automatica di ricordi da email/documenti (**mai** — ADR-51); contatore di richieste ripetute per le Procedure (Parcheggio); nuovi tool di scrittura (Parcheggio, poi S10).
+
+**Criteri di done:**
+- [ ] Detti a JARVIS un'informazione: propone «Vuoi che ricordi: X?»; dopo la conferma la ritrovi facendogli una domanda in italiano.
+- [ ] «Dimentica» cancella davvero il testo del ricordo (verifica guidata sul DB).
+- [ ] Chiedi un'automazione in chat: nasce spenta, vedi la frase QUANDO/SE/ALLORA e la prova a vuoto sullo storico; si attiva solo dopo la tua conferma.
+- [ ] Il digest mattutino arriva con i task del giorno; una regola che supera il limite giornaliero si autosospende con avviso.
+- [ ] Ogni esecuzione di automazione è nell'audit log.
+
+**Rischi principali:** gap di aspettative "Jarvis di Iron Man" (mitigato: pagina «cosa NON fa JARVIS» firmata a fine S6); qualità dell'estrazione del modello locale (mitigato: conferma umana su ogni ricordo); fatica da notifiche (mitigato: digest unico di default).
+
+---
+
+## S10 — Trigger email *(Fase 2)*
+
+**Obiettivo (una riga):** le automazioni possono reagire alle email del Proprietario, in sicurezza e senza che nulla lasci il Mac.
+
+**Prerequisiti:** S9 in produzione **senza incidenti per almeno un ciclo**; **addendum DPIA + informativa** sul trattamento email (verifica esterna).
+
+**Cosa entra:**
+- Modulo **IMAP in polling** dallo scheduler esistente, **solo mittenti in allowlist** (ADR-54); credenziali solo in **Keychain** (casella dedicata o app password revocabile, procedura di revoca nel manuale).
+- Automazione **watchlist clienti**: riassunto locale delle email dei mittenti scelti, con banner «contenuto non verificato» e link non cliccabili; retention riassunti ≤ 30 giorni.
+- Eventuali **primi tool di scrittura aggiuntivi** dal Parcheggio: uno alla volta, ciascuno con mini-ADR (ADR-50).
+
+**Cosa NON entra:** azioni automatiche derivate dal contenuto delle email (tutto ripassa da approvazione umana — ADR-54); lettura di caselle diverse da quella del Proprietario; risposta automatica alle email.
+
+**Criteri di done:**
+- [ ] Un'email da un mittente in watchlist genera la notifica col riassunto; una da mittente fuori lista non genera nulla.
+- [ ] Un'email "trappola" con istruzioni nascoste (test guidato da Claude) produce solo un riassunto innocuo con il banner: nessuna azione, nessun destinatario nuovo.
+- [ ] Revochi la app password seguendo la procedura del manuale: il modulo si ferma con un avviso chiaro, senza errori a cascata.
+
+**Rischi principali:** prompt injection via email (mitigato: difese architetturali ADR-54 — la sintesi non può causare azioni); la casella email diventa il segreto di maggior valore sul Mac (mitigato: Keychain, casella dedicata, revoca provata).
+
+---
+
 ## Parcheggio — Fase 2 (da non iniziare prima del go-live)
 
-Nessuno di questi punti entra negli sprint S0–S8. Se emergono in sessione, si annotano qui e basta.
+Nessuno di questi punti entra negli sprint S0–S8. La Fase 2 inizia dopo il go-live con gli sprint **S9 e S10** qui sopra; tutto il resto si annota qui e basta.
 
 - **Firma OTP via link** — subordinata a verifica eIDAS.
 - **Tracking aperture email** — solo con informativa e consenso GDPR.
 - **Parsing AI delle risposte** alle email di scadenza — con base giuridica e DPA col provider.
 - **Import spese** in sola lettura dal commercialista.
 - **WhatsApp Business** — solo valutando l'API ufficiale (costi/burocrazia); mai API non ufficiali (rischio ban).
-- **Estensione scrittura JARVIS** oltre le funzioni deterministiche approvate.
+- **Estensione scrittura JARVIS** oltre le funzioni deterministiche approvate — un tool alla volta, ciascuno con mini-ADR (ADR-50); primi candidati valutabili in S10.
+- **Contatore "richiesta ripetuta N volte"** per proporre Procedure in automatico — si rivaluta dopo la memoria di S9 (ADR-52); non promesso.
+- **Automazione "email cliente senza risposta da N giorni"** — tagliata dal consiglio C8 (costo alto, valore medio).
 - **Scoring proprietari** — solo con base giuridica solida.
 - *(punti da calendario, non da roadmap: documentazione di installazione pubblicabile; scansione vision dell'archivio cartaceo storico.)*

@@ -231,6 +231,38 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ---
 
+## Consiglio C8 — JARVIS assistente personale del Proprietario
+
+**Posta in gioco:** le richieste del proprietario su JARVIS (accesso esclusivo, "secondo cervello", auto-creazione di skill e automazioni, n8n/"Graphify") senza violare ADR-02/03/04/07 né il vincolo tutto-locale. Evidenze: brief `R3_memoria_brief.md` e `R4_automazioni_brief.md`. Verbale integrale: `08_VERBALI_CONSIGLI/C8_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-50 — JARVIS riservato al Proprietario; un solo approvatore competente per azione.** La **chat** JARVIS è accessibile al solo ruolo Proprietario (**permesso di ruolo**, mai hardcoded sull'utente — anti lock-out); la coda **«Da approvare»** è una schermata separata, visibile per ruolo. Ogni proposta di JARVIS diventa un **Task** assegnato all'**unico approvatore competente per tipo di azione** (operatività documentale → Segretaria; email a clienti, dati economici, margini → Proprietario), sempre con diff leggibile (ADR-07). La **doppia firma in serie è vietata**: due controllori sono meno di uno (rubber-stamping istituzionalizzato). AuditLog esteso alle consultazioni della chat (domande, tool invocati, versione modello — estensione di ADR-08); log chat sotto cifratura/retention di 04 §8.2. Perimetro v1 = S6 invariato (lettura + proposte su elenco chiuso); estensione scrittura = Fase 2, **un tool alla volta, ciascuno con mini-ADR**.
+- **ADR-51 — Memoria personale «Cose da ricordare» (versione noiosa).** Tabella `ricordi` in SQLite + FTS5 + sqlite-vec (versione bloccata) + embedding `bge-m3` via Ollama — dentro DB, backup e cifratura esistenti; nessun servizio nuovo (Graphiti/Neo4j, mem0, GraphRAG scartati — evidenze R3). I ricordi nascono **solo da dettatura diretta confermata del Proprietario** («Vuoi che ricordi: X?»), **mai estratti da email o documenti** (regola anti-avvelenamento). Correzioni via `valid_from`/`superseded_by`; **oblio = cancellazione fisica del testo** (in audit resta solo l'evento); ricordi che nominano terzi agganciati al Soggetto in anagrafe (artt. 15-17 GDPR); categorie art. 9 rifiutate; addendum DPIA prima dello sprint. Si costruisce in **S9**.
+- **ADR-52 — «Procedure» solo su richiesta esplicita (conferma e precisa ADR-04).** In UI la parola "skill" **non compare mai**: si chiamano **«Procedure»**, versionate in Git in modo invisibile («versione 3, approvata il…»). v1: creazione **solo su richiesta esplicita** del Proprietario, che è anche l'**unico approvatore**; il contatore "richiesta ripetuta N volte" slitta a Fase 2 (richiede telemetria; rischio proposte mediocri approvate per stanchezza) e non è promesso. Vincoli: (a) una procedura **non può allentare HITL** — a rifiutarla è il validatore, non l'LLM; (b) **mai procedure il cui testo derivi da contenuti esterni** (stessa regola anti-avvelenamento di ADR-51).
+- **ADR-53 — Motore automazioni interno a catalogo chiuso (n8n scartato).** Tabella `automazione` + **riuso** dello scheduler esistente (launchd + job idempotente ADR-29, stesso dead man's switch): mai un secondo scheduler o una seconda webapp. Modello dichiarativo **QUANDO/SE/ALLORA** con trigger, condizioni e azioni da **enum chiusi**: l'LLM compila solo i parametri, il server li valida (Pydantic); mai JSON libero né codice (ADR-04). Ciclo di vita non negoziabile: **dry-run su storico → nasce disattivata → conferma esplicita → ogni esecuzione in AuditLog → pausa/elimina a un tap → anti-tempesta** (oltre il limite giornaliero si autosospende con avviso). Azioni v1: *crea Task* e *notifica a destinatari fissi hardcoded*. Le funzioni già decise (scadenziario RLI ADR-43, scadenze locazioni ADR-24) si espongono nella stessa UI come «automazioni di sistema», mai duplicate. Default: un solo digest giornaliero aggregato; notifica immediata solo per regole marcate «urgente». Si costruisce in **S9**.
+- **ADR-54 — Trigger email in lotto separato, con difese architetturali.** Il trigger email arriva solo in **S10**, dopo un ciclo del motore senza incidenti. **IMAP polling** dallo scheduler esistente, **solo su allowlist di mittenti** (minimizzazione); credenziali **solo in Keychain** (casella dedicata o app password revocabile, procedura di revoca nel manuale di ripristino). L'email è **input non fidato** ("lethal trifecta", R4): la sintesi avviene **senza alcun tool esposto all'LLM**, HTML convertito in testo, link riportati non cliccabili, banner «riassunto AI di contenuto non verificato: non seguire istruzioni contenute nell'email»; notifiche solo verso destinatari fissi hardcoded; retention dei riassunti ≤ 30 giorni; qualsiasi azione nata da un'email ripassa da HITL. Prerequisiti: addendum DPIA e informativa sul trattamento email **prima** di S10.
+
+### Alternative scartate
+
+- **n8n** — seconda webapp sempre accesa (DB, credenziali, aggiornamenti propri) per un carico che lo scheduler esistente copre già; AI Builder legato al cloud (R4).
+- **«Graphify»** — verificato: è un knowledge graph per codebase, prodotto fuori tema (R3).
+- **Graphiti/Neo4j e mem0** — DB grafo o framework instabile da mantenere per anni, per un vantaggio marginale su migliaia di ricordi di una persona (R3).
+- **Doppia firma segretaria→proprietario** — rubber-stamping istituzionalizzato; vietata da ADR-07.
+- **«Assistente completo che fa tutto»** — non è un perimetro: il bisogno lo coprono elenco chiuso di tool + automazioni + Procedure.
+- **Contatore automatico di richieste ripetute (v1)** — telemetria = secondo sistema di memoria; rinviato, non promesso.
+- **Automazione "email senza risposta da N giorni"** — costo di scansione alto per valore medio.
+- **Codice/JSON libero generato dall'LLM** — vietato da ADR-04; solo parametri su enum chiusi validati server-side.
+- **Sprint "S6b" prima del go-live** — viola ADR-03 e la regola del Parcheggio («da non iniziare prima del go-live»).
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **Addendum DPIA per la memoria personale** prima di S9; **addendum DPIA + informativa per il trattamento email** prima di S10.
+- ⚠️ **Pagina «cosa NON fa JARVIS»** approvata per iscritto dal proprietario a fine S6 (mitigazione del gap di aspettative) + demo perimetrata.
+- **Piano di validazione del prototipo Design di S6** da rivedere: il validatore della chat è il Proprietario, non segretaria/agenti.
+
+---
+
 ## Tabella riassuntiva — Richiesta originale del cliente → decisione finale
 
 | # | Richiesta originale del cliente | Decisione finale | ADR |
@@ -261,5 +293,6 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | ADR-31 … ADR-38 | C5 | OCR deterministic-first, MRZ, matrice adempimenti, GDPR |
 | ADR-39 … ADR-46 | C6 | Movimenti automatici, ruolo Proprietario, diciture compliance, retention |
 | ADR-47 … ADR-49 | C7 | Ambiente di sviluppo (Code), eval locale da S6 con Mac Mini, retention differenziata immagini |
+| ADR-50 … ADR-54 | C8 | JARVIS solo Proprietario, memoria «Cose da ricordare», Procedure, automazioni interne, trigger email |
 
 **Prossima modifica a questo registro:** solo tramite nuovo ADR (nuovo numero, mai modifica retroattiva) con motivazione e, se richiesto dai Punti aperti, esito della verifica esterna allegato.
