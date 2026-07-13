@@ -263,6 +263,46 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ---
 
+## Consiglio C9 — Modalità Chiamata JARVIS, versione mobile e accesso via Tailscale
+
+**Posta in gioco:** la richiesta del Proprietario di una "modalità Chiamata" vocale in tempo reale per JARVIS (uso a mani libere, es. alla guida) e la valutazione di 5 tool GitHub proposti, nella cornice — **decisa dall'utente** — di una **versione mobile completa del gestionale** usata dal telefono ovunque tramite **Tailscale**. Evidenze: brief `R5_chiamata_mobile_brief.md`. Verbale integrale (con certificazione del meccanismo del consiglio e bozza di progettazione di Fable 5 in appendice): `08_VERBALI_CONSIGLI/C9_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-55 — Mobile = PWA responsive sullo stesso FastAPI (pre-go-live).** Nessuna app nativa iOS/Android: un secondo codebase senza benefici per un utente principale su rete privata. Web responsive + manifest PWA installabile sulla stessa app server-rendered; HTTPS solo via `tailscale cert`/`tailscale serve` sul tailnet; service worker che cachea **solo asset statici, mai dati clienti offline**. Unica fonte design resta la checklist impeccable anche su mobile (una sola azione primaria per schermata, target touch ≥44px). PDF sempre con bottone "Apri/Scarica" nativo accanto a PDF.js; upload foto documenti via `<input type=file accept=image/* capture=environment>` nativo con ricompressione server-side. **Collocazione: sprint dedicato pre-go-live** (la versione mobile è cornice decisa dall'utente, quindi prodotto base — la regola del Parcheggio ADR-03 vincola la Fase 2 di JARVIS, non il gestionale).
+- **ADR-56 — Deroga dichiarata n.2 al vincolo tutto-locale: control-plane Tailscale.** Come per l'SMTP (deroga n.1), l'accesso remoto via Tailscale introduce un terzo che tratta **metadati** (nodi, topologia, chiavi, relay DERP per il traffico che resta cifrato end-to-end WireGuard) ma **mai i dati**. Richiede: DPA Tailscale sottoscritto, aggiornamento del registro dei trattamenti, Headscale documentata come exit strategy **non** implementata.
+- **ADR-57 — Hardening del tailnet.** ACL **default-deny** (solo il nodo-telefono del Proprietario raggiunge la porta HTTPS dell'app sul Mac Mini), device approval, Tailnet Lock, MFA sull'account Tailscale, key expiry; **Funnel/exit-node/subnet-routing vietati, zero port-forwarding**; app in bind solo su `localhost` + interfaccia `100.x`. **Tailscale è trasporto, mai autenticazione:** login applicativo e ruoli (ADR-08, ADR-50) restano obbligatori sopra la VPN. Ogni accesso remoto in AuditLog con identità del nodo tailnet + alert email al login da nodo mai visto.
+- **ADR-58 — Runbook telefono perso/rubato.** Procedura scritta e **testata una volta davvero** (come il restore test ADR-06): revoca del nodo Tailscale, invalidazione di tutte le sessioni app, rotazione password, verifica dell'audit; valutazione data-breach **art. 33 GDPR entro 72h**. Obbligatori: blocco schermo biometrico sul telefono, sessioni mobili brevi con re-login. Rischio residuo basso perché il telefono non contiene dati (è solo un client).
+- **ADR-59 — Perimetro della modalità Chiamata (Fase 3).** A voce **solo** Q&A read-only + **dettatura di proposte che finiscono in coda**; l'esecuzione di scritture a voce è **vietata sempre** (un "sì" alla guida è approvazione cieca, vietata da ADR-07). Gate **nel codice**: il token di approvazione è generabile solo dalla UI dopo il render del diff a video, **non forgiabile dall'LLM**. Niente pulsante "approva tutto", diff mostrato voce per voce. Interazione **half-duplex push-to-talk**, niente barge-in in v1; risposte max 2 frasi by design. **Precondizione bloccante:** walking skeleton (~1 settimana) che misuri latenza end-to-end su 4G reale (incluso relay DERP) e RAM a regime con conversazione lunga — soglia **4 s/turno**, altrimenti aspettative rifirmate o rinuncia. Pagina "cosa NON fa JARVIS" aggiornata e **rifirmata prima di costruire**.
+- **ADR-60 — Il canale vocale è input NON fidato.** La trascrizione è trattata come le email IMAP di S10 (**contesto, mai istruzioni**), loggata integralmente nell'evidence pack; **read-back verbale** dei campi chiave prima di accodare una proposta; **nessun audio persistito**, solo trascrizioni con retention definita; attivazione sempre esplicita push-to-talk (**mai ascolto continuo/wake word** — tutela dei terzi in auto); **divieto di autenticazione vocale** (dato biometrico, art. 9 GDPR).
+- **ADR-61 — Stack voce locale "noioso".** Glue custom minimale **dentro** FastAPI (un endpoint WebSocket), **nessun framework di orchestrazione né secondo servizio sempre acceso**; processi voce avviati **on-demand** all'apertura della Chiamata e terminati alla chiusura. STT = **whisper.cpp** large-v3-turbo con Core ML/ANE (fallback whisper medium quantizzato); LLM = **Ollama 27B già residente**; TTS = deciso con **demo audio al Proprietario** nell'ordine: `say`/AVSpeech nativo → **Piper** `it_IT-paola` via subprocess (GPL-3.0 **mai linkata**, licenza della voce da verificare) → **Kokoro-82M** (Apache-2.0). **XTTS v2 VIETATO** (licenza CPML non commerciale). Qualsiasi framework (anche Pipecat/LiveKit) solo dopo fallimento documentato del glue custom e nuovo permesso-dipendenze.
+- **ADR-62 — Notifiche mobile.** Canale primario resta l'**email SMTP** (deroga n.1). Eventuale **Web Push su iOS** solo con PWA installata e **payload generico privo di dati** ("hai una proposta in attesa"), perché transita da APNs (cloud Apple).
+- **ADR-63 — UI voce nativa, zero dipendenze.** Orb "Jarvis che parla" e waveform della voce in ingresso con **Web Audio AnalyserNode + Canvas 2D + CSS custom property** (~50 righe). `bklit-ui` e `personaplex` scartati; `anime.js`/`siriwave` rivalutabili solo con permesso esplicito nuove dipendenze; l'animazione è **rifinitura finale, non requisito** (è inutile proprio nello scenario — la guida — che la motiva).
+
+### Alternative scartate
+
+- **NVIDIA/personaplex** — modello speech-to-speech monolitico (base Moshi) che richiede GPU NVIDIA/CUDA, non gira su Apple Silicon (solo port community non mantenuti), non collega Ollama/whisper/Piper, non sta in RAM accanto al 27B; pesi sotto NVIDIA Open Model License. Viola hardware, architettura, RAM e igiene di licenza.
+- **livekit/agents come adozione** — dei due proposti è il migliore (Apache-2.0, Apple Silicon, plugin locali: **batte personaplex senza discussione**), ma impone un media server WebRTC **sempre acceso** per un solo utente vocale. Tenuto **solo come riferimento architetturale**: i pattern (approval gate, blocking HITL, turn detection) si copiano nel glue custom.
+- **David-Crty/databasement** — web app Laravel/Docker per flotte di DB eterogenei: per un singolo SQLite locale duplica ADR-06 e aggiunge una superficie d'attacco. (Per RPO di secondi l'unico incremento sensato sarebbe **Litestream**, Apache-2.0, con ADR separato — non databasement.)
+- **bklit-ui** — registry di componenti *chart* per React/Next via shadcn: doppio mismatch (frontend server-rendered senza React; sono grafici, non orb/waveform).
+- **anime.js in v1** — libreria sana (MIT, ~10KB) ma non necessaria: waveform/orb si fanno nativi.
+- **XTTS v2 / Coqui** — licenza CPML non commerciale, azienda chiusa: nessuno da cui acquistare licenza.
+- **App nativa iOS/Android** — secondo codebase + firma + distribuzione senza benefici per il caso d'uso; contro il vincolo di semplicità.
+- **Scritture eseguite a voce / conferma vocale delle scritture** — approvazione cieca, vietata da ADR-07; il gate sta nel codice, non nella buona volontà.
+- **Full-duplex "Iron Man" / ascolto continuo / wake word** — fragilità tecnica non necessaria + rischio privacy sui terzi; da scrivere nella pagina "cosa NON fa JARVIS".
+- **Headscale/NetBird self-hosted** — più manutenzione e un endpoint da esporre; per questa scala la scelta noiosa è Tailscale SaaS + Tailnet Lock, con Headscale come uscita documentata.
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **DPA Tailscale** sottoscritto + aggiornamento del **registro dei trattamenti** per i metadati del control-plane (accountability GDPR) — prima dell'accesso remoto in produzione.
+- ⚠️ **DPIA "leggera" (art. 35 GDPR)** sulla combinazione voce + accesso remoto + AI (probabilmente sotto soglia d'obbligo per 2-5 utenti, ma da istruire).
+- ⚠️ **Verifica licenza della singola voce TTS** adottata (es. Piper `it_IT-paola`) e conferma legale dell'uso interno server-side di software GPL-3.0 non distribuito.
+- **Retention delle trascrizioni vocali** nell'audit log, validata con il consulente privacy.
+- ⚠️ **Parere su art. 173 CdS / responsabilità civile** per la policy d'uso alla guida ("il sistema non richiede mai sguardo o tocco in movimento"), inclusa nella pagina "cosa NON fa JARVIS" da far rifirmare al Proprietario.
+- **Walking skeleton di misura** (latenza 4G/DERP, RAM a regime) come gate tecnico prima di costruire la Chiamata (ADR-59).
+
+---
+
 ## Tabella riassuntiva — Richiesta originale del cliente → decisione finale
 
 | # | Richiesta originale del cliente | Decisione finale | ADR |
@@ -279,6 +319,9 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | 10 | **Privacy auto-compilata** | Nessuna raccolta automatica del consenso: flusso **genera → stampa → firma → scansiona**; la scansione è **record immutabile di consenso** (soggetto, versione modulo, data, hash); cambio informativa → consensi scaduti e **ri-firma obbligatoria**. | ADR-20 |
 | 11 | **API cloud in sviluppo** | Sì in sviluppo con **soli dati sintetici/anonimizzati** (provider configurabile via `base_url`/`model`); produzione su **Ollama locale**; eval suite rieseguita sul modello locale **da S6** (prima esecuzione = criterio di done di S6). | ADR-05, ADR-48 |
 | 12 | **Auto-skill JARVIS** | **Libreria curata**: JARVIS propone skill in Markdown, attivabili **solo con approvazione umana + versioning Git**; **mai** codice auto-generato eseguito sul server. | ADR-04 |
+| 13 | **Versione mobile** | **PWA responsive** sulla stessa app FastAPI (niente app nativa), usata dal telefono via **Tailscale**; sprint dedicato **pre-go-live**. | ADR-55, ADR-56, ADR-57 |
+| 14 | **JARVIS "come Iron Man" (chiamata vocale)** | **Modalità Chiamata in Fase 3**: a voce solo Q&A read-only + dettatura di proposte in coda; **scritture mai a voce** (HITL a video); stack voce **tutto locale** (whisper.cpp + Ollama 27B + TTS italiano), on-demand. | ADR-59, ADR-60, ADR-61 |
+| 15 | **Tool GitHub proposti** | **Nessuno adottato**: databasement, bklit-ui, personaplex e anime.js (v1) scartati; livekit/agents solo come **riferimento di pattern**; UI voce **nativa**. | ADR-63 |
 
 ---
 
@@ -294,5 +337,6 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | ADR-39 … ADR-46 | C6 | Movimenti automatici, ruolo Proprietario, diciture compliance, retention |
 | ADR-47 … ADR-49 | C7 | Ambiente di sviluppo (Code), eval locale da S6 con Mac Mini, retention differenziata immagini |
 | ADR-50 … ADR-54 | C8 | JARVIS solo Proprietario, memoria «Cose da ricordare», Procedure, automazioni interne, trigger email |
+| ADR-55 … ADR-63 | C9 | Mobile PWA, deroga/hardening Tailscale, runbook furto, modalità Chiamata JARVIS, voce = input non fidato, stack voce locale, notifiche, UI voce nativa |
 
 **Prossima modifica a questo registro:** solo tramite nuovo ADR (nuovo numero, mai modifica retroattiva) con motivazione e, se richiesto dai Punti aperti, esito della verifica esterna allegato.

@@ -3,7 +3,7 @@
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale.
 **Ambiente di produzione:** Mac Mini M4, rete LAN dell'agenzia (2-5 utenti).
 **Ambiente di sviluppo:** sessioni nella sezione **Code** di Claude Desktop (ADR-47), repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
-**Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46).
+**Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-63).
 
 ---
 
@@ -14,7 +14,7 @@ Il sistema è il **registro operativo** di una piccola agenzia immobiliare: anag
 Principi non negoziabili (violare uno di questi = blocco dello sprint):
 
 1. **Deterministico prima dell'AI.** Documenti legali, calcoli, scadenze e adempimenti escono da template versionati e da codice. L'LLM non è mai autore di testo legale né di logica di calcolo (ADR-02).
-2. **Tutto locale.** In produzione nessun dato lascia il Mac Mini: LLM via Ollama, OCR locale, nessuna API cloud. In sviluppo, le API cloud vedono **solo dati sintetici o anonimizzati** (ADR-01, ADR-05). **Unica eccezione dichiarata**: l'invio delle email di notifica via SMTP (§6), circoscritta ai dati minimi necessari al messaggio, con DPA col provider e copertura nell'informativa — da predisporre prima di S4 (verbale C7).
+2. **Tutto locale.** In produzione nessun dato lascia il Mac Mini: LLM via Ollama, OCR locale, nessuna API cloud. In sviluppo, le API cloud vedono **solo dati sintetici o anonimizzati** (ADR-01, ADR-05). **Deroghe dichiarate** (le uniche): (1) l'invio delle email di notifica via **SMTP** (§6), circoscritta ai dati minimi del messaggio, con DPA col provider e copertura nell'informativa — prima di S4 (verbale C7); (2) l'**accesso remoto via Tailscale** (§10, ADR-56): il control-plane tratta metadati (nodi, topologia, chiavi, relay DERP), **mai i dati** che restano sul Mac cifrati end-to-end — con DPA e registro dei trattamenti aggiornato (verbale C9).
 3. **A prova di stupido.** L'utente tipo è una segretaria non tecnica: messaggi di errore in italiano semplice, azioni guidate, nessuna configurazione manuale di file.
 4. **Backup verificabile.** Un backup mai ripristinato non è un backup: snapshot schedulato + copia offsite cifrata + restore test mensile + alert (ADR-06).
 5. **Human-in-the-loop con audit.** Ogni scrittura rilevante passa da un umano che vede un **diff leggibile**, conferma esplicitamente, e lascia traccia immutabile: chi, cosa, quando, con quale versione di template e di modello (ADR-07, ADR-08).
@@ -39,6 +39,11 @@ Stack unico, tecnologie mature ("noiose") e installabili via `pip`/`brew` (ADR-0
 | Estrazione testo | **PyMuPDF / pdfplumber** | APE in PDF nativi, senza OCR |
 | MRZ | Parser **ICAO 9303** con checksum | CIE/passaporti, gate bloccante |
 | Email | **SMTP** (provider a scelta: es. Brevo/Gmail/Workspace) | Canale unico notifiche v1 con SPF/DKIM/DMARC |
+| Frontend mobile | **PWA responsive** (stessa app FastAPI server-rendered + manifest) | Uso dal telefono del Proprietario; niente app nativa (ADR-55) |
+| Accesso remoto | **Tailscale** (WireGuard mesh) + `tailscale cert`/`serve` per HTTPS tailnet-only | Raggiungere il Mac da fuori senza esporlo a Internet (ADR-56/57) |
+| STT (voce, Fase 3) | **whisper.cpp** large-v3-turbo (Core ML/ANE) | Ascolto locale della modalità Chiamata (ADR-61) |
+| TTS (voce, Fase 3) | `say`/AVSpeech → **Piper** it_IT-paola → **Kokoro-82M** (scelta con demo audio) | Voce italiana locale; XTTS vietato (ADR-61) |
+| Orchestrazione voce (Fase 3) | **Glue custom** in FastAPI (WebSocket), processi voce **on-demand** | Nessun framework né secondo servizio sempre acceso (ADR-61) |
 
 **Cartella dati unica** — tutto ciò che conta vive in un solo posto:
 
@@ -222,6 +227,9 @@ JARVIS propone → funzione deterministica valida OGNI campo
 - Azioni v1: *crea Task*; *notifica a destinatari fissi hardcoded*. Default: un solo digest giornaliero aggregato; notifica immediata solo per regole «urgente».
 - **Trigger email (S10, ADR-54)**: IMAP polling dallo scheduler, **solo mittenti in allowlist**; credenziali solo in **Keychain** (casella dedicata o app password revocabile); la sintesi gira **senza alcun tool esposto all'LLM**; HTML→testo, link non cliccabili, banner «riassunto AI di contenuto non verificato»; retention riassunti ≤ 30 giorni; ogni azione nata da email ripassa da HITL. L'email è input non fidato ("lethal trifecta" — brief R4).
 
+### 4.8 Modalità Chiamata (voce) — Fase 3 (ADR-59, ADR-60, ADR-61)
+JARVIS parla e ascolta a mani libere (uso alla guida), ma resta **bocca e orecchie**: a voce **solo** Q&A read-only + **dettatura di proposte che finiscono in coda**; l'esecuzione di scritture a voce è **vietata** (un "sì" alla guida = approvazione cieca, ADR-07). Il gate di scrittura è **nel codice** (token di approvazione generato solo dalla UI dopo il render del diff, non forgiabile dall'LLM); niente "approva tutto". La trascrizione vocale è **input non fidato** (come le email IMAP, ADR-60): contesto mai istruzioni, loggata nell'evidence pack, **read-back verbale** dei campi chiave, nessun audio persistito, attivazione esplicita push-to-talk (mai wake word), **no autenticazione vocale** (art. 9 GDPR). Dettaglio di stack, accesso e HITL in **§10**.
+
 ---
 
 ## 5. Pipeline documentale
@@ -393,8 +401,36 @@ Tutte le regole compliance sono **parametri versionati** mantenuti dal fornitore
 
 ---
 
+## 10. Mobile, accesso remoto e modalità Chiamata (Consiglio C9)
+
+Il gestionale si usa anche dal **telefono del Proprietario, ovunque**, tramite Tailscale. Il dato resta sul Mac Mini: il telefono è un **client remoto** su rete privata cifrata.
+
+### 10.1 Versione mobile = PWA responsive (ADR-55)
+Stessa app FastAPI server-rendered, resa **responsive** (mobile-first sulle schermate nuove) + **manifest PWA** installabile; **nessuna app nativa**. Unica fonte design: checklist impeccable (una azione primaria per schermata, touch ≥44px). Service worker: cache **solo asset statici**, mai dati clienti offline. Accorgimenti mobile: PDF con bottone "Apri/Scarica" nativo accanto a PDF.js; upload foto documenti con `<input type=file accept=image/* capture=environment>` + ricompressione server-side; tabelle larghe in scroll orizzontale nel proprio contenitore (mai scroll di pagina). **Prerequisito tecnico:** HTTPS via `tailscale cert`/`tailscale serve` (necessario per PWA e microfono) — da fare **subito**.
+
+### 10.2 Accesso remoto via Tailscale (ADR-56, ADR-57)
+Tailscale (WireGuard mesh) è il **trasporto, mai l'autenticazione**. Difese obbligatorie a strati: ACL **default-deny** (solo il nodo-telefono del Proprietario → porta HTTPS dell'app), device approval, Tailnet Lock, MFA, key expiry; **Funnel/exit-node/subnet-routing vietati, zero port-forwarding**; app in bind solo su `localhost` + `100.x`. **Login + ruoli (ADR-08, ADR-50) restano obbligatori sopra la VPN.** Ogni accesso remoto in AuditLog con identità del nodo + alert su nodo nuovo. Deroga n.2 al tutto-locale dichiarata in §1 (ADR-56): DPA + registro trattamenti; Headscale come exit strategy documentata, non implementata. **Runbook telefono perso/rubato** (ADR-58): revoca nodo, invalidazione sessioni, rotazione password, verifica audit, valutazione art. 33 GDPR in 72h — **testato una volta** come il restore test.
+
+### 10.3 Stack voce locale (ADR-61) — Fase 3
+```
+Telefono (browser/PWA): push-to-talk mic ──WebSocket(Tailscale)──► FastAPI
+        │                                                              │
+        │ audio a chunk ◄── TTS ◄── Ollama 27B (residente) ◄── whisper.cpp (STT)
+        ▼
+   riproduzione                     [tutti i processi voce sul Mac, ON-DEMAND]
+```
+Glue custom **dentro** FastAPI (endpoint WebSocket), **nessun framework** né media server sempre acceso; STT **whisper.cpp** large-v3-turbo Core ML (fallback medium quantizzato); LLM **Ollama 27B già residente**; TTS scelto con **demo audio** (`say`/AVSpeech → Piper `it_IT-paola` via subprocess GPL-3.0 mai linkata → Kokoro-82M Apache-2.0; **XTTS vietato**). Stima RAM: 27B ~17GB + macOS ~4-5GB → residuo ~2-3GB: whisper turbo (~1,5GB) + TTS ci stanno **solo** on-demand e tenendo d'occhio il KV-cache — **misura obbligatoria nel walking skeleton**, anche con S9/bge-m3 attivo. Stima latenza 1,5-3 s/turno (fino a 2-5 s su cellulare via DERP): vale la **misura**, non la stima; soglia di kill 4 s/turno (ADR-59). Animazione orb/waveform **nativa** (Web Audio AnalyserNode + Canvas 2D + CSS), zero dipendenze (ADR-63); è rifinitura finale.
+
+### 10.4 HITL a voce — flusso in due tempi (ADR-59, ADR-60)
+1. **In auto (a voce):** consulto dati read-only + detto proposte → **read-back verbale** dei campi chiave → la proposta va **in coda** (nessun effetto sul DB). Trascrizione = input non fidato, loggata; nessun audio persistito.
+2. **Da fermo (a video):** apro la coda «Da approvare» (telefono o desktop), vedo il **diff leggibile** di ogni proposta, approvo/rifiuto **una per una**. Vietato "approva tutto"; anche le proposte rifiutate/scadute restano in AuditLog.
+
+⚠️ **Verifiche esterne (C9)** prima della produzione: DPA Tailscale + registro trattamenti; DPIA leggera (voce+remoto+AI); licenza voce TTS + uso server-side GPL-3.0; retention trascrizioni vocali; parere art. 173 CdS per la policy d'uso alla guida (nella pagina "cosa NON fa JARVIS", rifirmata).
+
+---
+
 ## Chiusura
 
-- Decisioni normative: `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46). Questo documento le applica; in caso di conflitto, **vincono gli ADR**.
-- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9), bozza DPIA prima di S3 (§8.4). Il **vision LLM di fallback** (ADR-33) si sceglie all'esito del bake-off di S7 con mini-ADR — vincolo: **deve girare in locale** (verbale C7).
+- Decisioni normative: `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-63). Questo documento le applica; in caso di conflitto, **vincono gli ADR**.
+- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9), bozza DPIA prima di S3 (§8.4); **e, dal Consiglio C9 (§10):** DPA Tailscale + registro trattamenti, DPIA leggera voce+remoto+AI, licenza voce TTS, retention trascrizioni, parere art. 173 CdS. Il **vision LLM di fallback** (ADR-33) si sceglie all'esito del bake-off di S7 con mini-ADR — vincolo: **deve girare in locale** (verbale C7).
 - Ordine di build raccomandato dal Consiglio C1: **1)** backup attivo prima dei dati veri; **2)** CRUD + audit log senza AI; **3)** un template reale (incarico) → DOCX → PDF; **4)** solo dopo, JARVIS in lettura.

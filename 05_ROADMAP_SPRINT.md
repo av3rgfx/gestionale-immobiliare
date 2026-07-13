@@ -15,6 +15,7 @@
 | Sessione 1 + S0, S1, S3, S4, S5, S7, S8 | **Code** (sezione di Claude Desktop), sulla cartella del repository |
 | S2 e S6 | **Code**, con una deviazione guidata in **Claude Design** per disegnare il prototipo delle schermate, farlo validare da chi userà il gestionale, e poi implementarlo in Code tramite handoff. Il prompt di sprint ti guida passo passo. **Attenzione (ADR-50)**: per la chat JARVIS di S6 il validatore del prototipo è il **Proprietario** (la chat è solo sua), non segretaria/agenti. |
 | S9 e S10 (Fase 2, dopo il go-live) | **Code**; per le schermate nuove («Cose da ricordare», «Automazioni», coda «Da approvare») vale la stessa deviazione in **Claude Design** di S2/S6. |
+| S-Mob (mobile, pre-go-live) e S11 (Chiamata JARVIS, Fase 3) | **Code**; la resa mobile responsive e la UI della modalità Chiamata seguono la stessa deviazione in **Claude Design** di S2/S6 (per la Chiamata il validatore è il **Proprietario**). Decisioni: ADR-55…63 (verbale C9). |
 
 La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
@@ -42,6 +43,10 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 | Conferma retention differenziata immagini documenti (ADR-49) | durante S5 | consulente AML |
 | Addendum DPIA per la memoria personale (ADR-51) | prima di S9 | con Claude + eventuale consulente privacy |
 | Addendum DPIA + informativa per il trattamento email (ADR-54) | prima di S10 | con Claude + eventuale consulente privacy |
+| DPA Tailscale sottoscritto + registro dei trattamenti aggiornato per i metadati del control-plane (ADR-56) | prima di S-Mob in produzione | agenzia + con Claude |
+| DPIA "leggera" (art. 35) su voce + accesso remoto + AI (ADR-59/60) | prima di S11 | con Claude + eventuale consulente privacy |
+| Verifica licenza della voce TTS adottata + uso server-side GPL-3.0 non distribuito (ADR-61) | prima di S11 | con Claude + eventuale legale |
+| Parere art. 173 CdS / responsabilità civile per la policy d'uso alla guida (ADR-59) | prima di S11 | consulente legale |
 
 ---
 
@@ -268,6 +273,34 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 ---
 
+## S-Mob — Versione mobile (PWA) e accesso remoto Tailscale *(pre-go-live)*
+
+**Obiettivo (una riga):** dal telefono del Proprietario si usa il gestionale ovunque, in sicurezza, tramite Tailscale — stessa app, resa responsive e installabile.
+
+> **Collocazione:** dopo S7 e **prima del go-live S8** (decisione utente + Consiglio C9). Il setup HTTPS via `tailscale cert`/`serve` è **prerequisito** e va anticipato (serve anche a PWA e microfono). Riferimenti: ADR-55, ADR-56, ADR-57, ADR-58; architettura §10.
+
+**Cosa entra:**
+- **Prototipo in Claude Design (prima del codice UI):** adattamento responsive delle schermate chiave sul telefono (liste, form, dashboard, anteprima), seguendo la checklist Design di `REGOLE.md` (una azione primaria per schermata, target touch ≥44px).
+- CSS responsive sui template esistenti + **manifest PWA** installabile; service worker che cachea **solo asset statici**, mai dati clienti. Nessuna app nativa.
+- **HTTPS via `tailscale cert`/`serve`** (tailnet-only); app in bind solo su `localhost` + `100.x`.
+- **Hardening tailnet:** ACL default-deny (solo il nodo-telefono del Proprietario → porta HTTPS), device approval, Tailnet Lock, MFA, key expiry; Funnel/exit-node/port-forwarding vietati.
+- **Login + ruoli sopra la VPN** (essere sul tailnet non basta); **audit di ogni accesso remoto** con identità del nodo + alert su nodo nuovo.
+- **Runbook telefono perso/rubato** scritto e **provato una volta** (revoca nodo, invalidazione sessioni, rotazione password, verifica audit; art. 33 GDPR 72h).
+- Accorgimenti mobile: PDF con bottone "Apri/Scarica" nativo accanto a PDF.js; upload foto documenti con fotocamera nativa (`input file capture`) + ricompressione server-side; tabelle in scroll orizzontale nel contenitore.
+
+**Cosa NON entra:** app nativa iOS/Android (mai); **modalità Chiamata vocale** (è S11, Fase 3); dati clienti persistiti sul telefono; Web Push (al più opzionale, payload generico — ADR-62); esposizione del Mac a Internet pubblico.
+
+**Criteri di done (verificabili da te):**
+- [ ] Dal tuo telefono connesso a Tailscale apri l'app e fai login: funziona come da desktop, leggibile a una mano.
+- [ ] Da un telefono/dispositivo **non autorizzato** sul tailnet non raggiungi nulla (ACL default-deny).
+- [ ] Installi l'app come icona sulla home (PWA) e si apre a schermo intero.
+- [ ] Generi un documento e lo apri/scarichi dal telefono; carichi la foto di un documento dalla fotocamera.
+- [ ] Provi il runbook furto: revochi il nodo dalla console Tailscale e da quel telefono non entri più; le sessioni risultano invalidate.
+
+**Rischi principali:** dipendenza dal control-plane Tailscale (mitigato: deroga dichiarata ADR-56 + DPA + Headscale come exit documentata); PDF.js pesante su file grandi (mitigato: bottone nativo); microfono iOS capriccioso (rimandato a S11, che lo verifica); tentazione di aprire porte sul router (vietato: solo Tailscale).
+
+---
+
 ## S8 — Hardening & Go-live
 
 **Obiettivo (una riga):** il sistema è sicuro, ripristinabile, documentato, e va in produzione sul Mac Mini M4 con l'AI locale.
@@ -339,6 +372,33 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Revochi la app password seguendo la procedura del manuale: il modulo si ferma con un avviso chiaro, senza errori a cascata.
 
 **Rischi principali:** prompt injection via email (mitigato: difese architetturali ADR-54 — la sintesi non può causare azioni); la casella email diventa il segreto di maggior valore sul Mac (mitigato: Keychain, casella dedicata, revoca provata).
+
+---
+
+## S11 — Modalità Chiamata JARVIS *(Fase 3)*
+
+**Obiettivo (una riga):** JARVIS parla e ascolta a mani libere (uso alla guida), ma resta bocca e orecchie: a voce solo domande e dettatura di proposte in coda; ogni scrittura si approva col diff **a video, da fermi**.
+
+**Prerequisiti:** go-live S8 e S-Mob in produzione; S9/S10 completati; **walking skeleton di misura superato** (latenza end-to-end su 4G reale/DERP e RAM a regime ≤ **4 s/turno**); **pagina «cosa NON fa JARVIS» aggiornata e rifirmata**; verifiche esterne C9 evase (DPIA leggera, licenza voce TTS, retention trascrizioni, parere art. 173 CdS). Riferimenti: ADR-59, ADR-60, ADR-61, ADR-63; architettura §4.8 e §10.3/10.4.
+
+**Cosa entra:**
+- **Walking skeleton (prima di tutto):** misura reale di latenza e RAM con la pipeline voce accesa; se sopra soglia, si rifirmano le aspettative o si rinuncia.
+- **Prototipo in Claude Design:** schermata della Chiamata (orb, waveform, stato push-to-talk, coda proposte), validata dal **Proprietario**.
+- **Stack voce locale** (ADR-61): endpoint WebSocket in FastAPI, processi **on-demand**; **whisper.cpp** (STT), **Ollama 27B** già residente, **TTS scelto con demo audio** (`say`/AVSpeech → Piper `it_IT-paola` → Kokoro). Nessun framework, nessun servizio sempre acceso.
+- **Half-duplex push-to-talk**, risposte max 2 frasi; **orb/waveform nativi** (AnalyserNode + Canvas + CSS), zero dipendenze.
+- **HITL a voce** (ADR-59/60): Q&A read-only + dettatura proposte con **read-back verbale** → coda «Da approvare»; **gate di scrittura nel codice** (token dalla UI dopo il diff, non forgiabile dall'LLM); niente "approva tutto". Trascrizione = **input non fidato**, loggata; **nessun audio persistito**.
+- **Eval voce**: casi realistici a voce, report archiviato.
+
+**Cosa NON entra:** esecuzione di scritture a voce (mai); barge-in / full-duplex; wake word / ascolto continuo; autenticazione vocale (art. 9 GDPR); framework di orchestrazione (LiveKit/Pipecat) — solo se il glue custom fallisce alla prova, con nuovo permesso-dipendenze; animazione "cinematografica" oltre l'orb nativo (rifinitura, non requisito).
+
+**Criteri di done (verificabili da te):**
+- [ ] In auto (o simulato) chiedi a voce "che scadenze ho questo mese?": la risposta a voce corrisponde a ciò che vedi in dashboard.
+- [ ] Detti "prepara una nuova pratica per Mario Rossi…": JARVIS fa il **read-back** dei campi chiave e mette la proposta **in coda**; sul database non cambia nulla.
+- [ ] Da fermo apri la coda, vedi il **diff** della proposta e la approvi/rifiuti una per una; l'esito è in audit log.
+- [ ] Provi a farle **eseguire** una modifica solo a voce: risponde che l'approvazione va fatta a video, non la esegue.
+- [ ] La latenza reale per turno è sotto la soglia concordata; l'orb reagisce alla voce.
+
+**Rischi principali:** latenza su cellulare (mitigato: misura + half-duplex + risposte brevi); RAM al filo col 27B (mitigato: on-demand + misura, anche con bge-m3 di S9 attivo); gap aspettative "Iron Man" (mitigato: pagina firmata, niente full-duplex); **sicurezza stradale** (mitigato: nessuna interazione visiva richiesta in movimento, risposte brevi) — la policy d'uso alla guida è nella pagina «cosa NON fa JARVIS».
 
 ---
 
