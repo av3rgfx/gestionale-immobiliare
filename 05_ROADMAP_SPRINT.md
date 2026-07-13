@@ -1,0 +1,288 @@
+# 05 — Roadmap Sprint — Gestionale Immobiliare + JARVIS
+
+**Stato:** approvata. **Fonte:** verdetti dei consigli C1–C6 e brief R1/R2 (`/mnt/agents/output/council/`), registro decisioni in `03_DECISIONI_CONSIGLIO.md`.
+
+## Come si legge questa roadmap
+
+- Gli sprint si fanno **in ordine, uno alla volta**. Ogni sprint corrisponde a un prompt in `06_PROMPT_SPRINT/` e tipicamente a più sessioni di lavoro.
+- I **criteri di done** sono scritti per essere verificati da un non-sviluppatore: se non riesci a verificarli tu, lo sprint non è finito.
+- La colonna "Cosa NON entra" è importante quanto quella "Cosa entra": tutto ciò che non è previsto va nel **parcheggio Fase 2**, senza eccezioni.
+
+## Ambienti di lavoro (decisione ADR-13)
+
+| Sprint | Ambiente |
+|---|---|
+| Sessione 1 + S0, S1, S3, S4, S5, S7, S8 | **Code** (sezione di Claude Desktop), sulla cartella del repository |
+| S2 e S6 | **Code**, con una deviazione guidata in **Claude Design** per disegnare il prototipo delle schermate, farlo validare da chi userà il gestionale (segretaria/agenti), e poi implementarlo in Code tramite handoff. Il prompt di sprint ti guida passo passo. |
+
+La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
+
+## Regole della roadmap (non negoziabili)
+
+1. **Prima il gestionale senza AI.** JARVIS arriva allo sprint S6, prima in sola lettura.
+2. **Backup attivo prima di qualsiasi dato vero:** bozza dello script in S0, sistema completo (cron + offsite + restore test + alert) in S3. Fino ad allora, solo dati finti.
+3. **Mai dati reali dei clienti verso API cloud** in sviluppo: solo dati sintetici o anonimizzati.
+4. **Astrazione provider LLM fin da S0** (`base_url`/`model` configurabili): il passaggio cloud → Ollama locale (S8) deve essere un cambio di configurazione.
+5. **Eval suite dal S0**, rieseguita sul modello locale quando disponibile (S6, S8).
+6. **Verifiche esterne obbligatorie** (vedi sotto) corrono *in parallelo* agli sprint, non dopo.
+
+### Verifiche esterne obbligatorie (fuori dal codice, da calendarizzare)
+
+| Verifica | Da fare entro | Chi |
+|---|---|---|
+| Test su 5–10 modelli reali depositati in Camera di Commercio (conversione, font, dry-run, confronto stampa) | durante S2 | agenzia + Claude |
+| Validazione legale delle due scadenze l. 431/98 (doppio trigger) | durante S4, prima del go-live del modulo | consulente legale |
+| Validazione legale dei template da un professionista + nominare un responsabile aggiornamento normativo | durante S2 | consulente legale |
+| Verifica soglie AML con il consulente antiriciclaggio dell'agenzia | durante S5 | consulente AML |
+| Assemblare il corpus di 50+ documenti reali (CI, CIE, passaporti, APE di almeno 3 regioni) | prima di S7 | agenzia |
+| Verifica esistenza del modello locale scelto (nome esatto, pesi, benchmark) | prima di S6 | con Claude |
+| DPIA ex art. 35 GDPR | durante S8, prima del go-live | con Claude + eventuale consulente privacy |
+
+---
+
+## S0 — Fondamenta
+
+**Obiettivo (una riga):** il cantiere è pronto: repo, regole, ambiente di sviluppo, astrazione AI, eval suite e bozza backup.
+
+**Cosa entra:**
+- Repo GitHub inizializzato, `REGOLE.md` scritto/approvato + `CLAUDE.md` che ci punta (doppia fonte, vedi file `02` sezione A).
+- Ambiente dev sul MacBook: Homebrew, Python, LibreOffice, font Liberation, virtualenv, dipendenze base.
+- Cartella dati `~/Gestionale/` con struttura (`db.sqlite`, `documenti/`, `templates/`).
+- Astrazione provider LLM (SDK OpenAI con `base_url` e `model` da configurazione) + test di connessione al provider cloud.
+- Skeleton eval suite: cartella `evals/` con primi casi di test in italiano e script che produce un report.
+- Bozza script di backup con `sqlite3 .backup` + copia su destinazione offsite (manuale, non ancora schedulato).
+
+**Cosa NON entra:** nessuna funzione del gestionale (CRUD, UI, template); nessun backup schedulato (arriva in S3); nessun modello locale.
+
+**Criteri di done (verificabili da te):**
+- [ ] Apri GitHub nel browser e vedi il repo con i file della harness (00–08 e `06_PROMPT_SPRINT/`), `REGOLE.md`, `CLAUDE.md` e `HANDOFF.md`.
+- [ ] Apri `REGOLE.md` nel repo: è quello che hai approvato; `CLAUDE.md` esiste e rimanda a `REGOLE.md`.
+- [ ] Lanci il comando di test connessione AI che ti dà Claude e vedi una risposta del modello.
+- [ ] Lanci la eval suite e vedi un report con esito per ogni caso di test.
+- [ ] Lanci lo script di backup e trovi il file di backup dove previsto; Claude ti guida a ripristinarlo su una copia di prova e la copia si apre.
+
+**Rischi principali:** versioni incoerenti sul MacBook 2019 (Homebrew/Python); attrito iniziale che scoraggia (mitigato: un passo alla volta, niente fretta); tentazione di iniziare subito il gestionale saltando le fondamenta.
+
+---
+
+## S1 — Core gestionale
+
+**Obiettivo (una riga):** l'app esiste: login con ruoli, audit log, e si gestiscono soggetti e immobili con il blocco APE sulle pratiche.
+
+**Cosa entra:**
+- Scaffold FastAPI + SQLite in modalità WAL; tabelle iniziali dal modello dati di `04_ARCHITETTURA.md` §3.
+- Login con 4 ruoli: Proprietario, Admin, Agente, Segretaria (permessi differenziati).
+- Audit log immutabile: chi, cosa, quando, su quale record.
+- CRUD soggetti (persone fisiche e giuridiche) con validazione codice fiscale (check digit).
+- CRUD immobili con dati catastali e APE associata; **blocco**: nessuna pratica creabile su immobile senza APE.
+- UI semplice: liste, form, messaggi di errore in italiano chiaro.
+
+**Cosa NON entra:** generazione documenti (S2), privacy (S3), scadenze (S4), movimenti (S5), AI (S6).
+
+**Criteri di done:**
+- [ ] Apri l'app nel browser, fai login come Agente e come Segretaria: vedi menu diversi.
+- [ ] Crei un soggetto con codice fiscale sbagliato: l'app lo rifiuta con un messaggio comprensibile.
+- [ ] Crei un soggetto corretto, chiudi e riapri: è ancora nella lista.
+- [ ] Crei un immobile senza APE e provi ad aprire una pratica: l'app blocca e spiega perché.
+- [ ] Chiedi a Claude di mostrarti l'audit log: vedi le operazioni che hai appena fatto, con data e utente.
+
+**Rischi principali:** scope creep verso documenti/scadenze ("già che ci siamo…"); UI troppo ricca; permessi dei ruoli da definire con l'agenzia prima di codificarli.
+
+---
+
+## S2 — Modulo documentale
+
+**Obiettivo (una riga):** dai dati escono documenti fedeli ai modelli depositati in Camera di Commercio, con ciclo di vita controllato dei template.
+
+**Cosa entra:**
+- **Prototipo in Claude Design (prima del codice UI):** le schermate del modulo documentale (lista template, ciclo di vita, anteprima PDF, generazione pacchetto) vengono prima disegnate in Claude Design seguendo la checklist Design di `REGOLE.md`, fatte provare a segretaria/agenti, corrette col loro feedback, e solo poi implementate in Code.
+- Ciclo di vita template: bozza → depositata → ritirata; hash SHA-256; lock sulle depositate; approvazione per ruolo.
+- Import `.doc`/`.odt` → conversione una tantum in `.docx` → nasce **bozza da approvare**.
+- Dry-run al salvataggio: segnaposti irrisolti e font mancanti segnalati in italiano semplice, con dati finti.
+- Rendering on-demand dai dati canonici (**nessuna cascata**); generazione bloccata con elenco campi mancanti.
+- Tasto "Genera pacchetto pratica" con moduli condizionali (es. mutuo solo se previsto).
+- Anteprima = PDF generato e archiviato alla creazione dell'istanza (PDF.js); correzione dato → rigenerazione esplicita come nuova istanza; pratiche in corso legate alla versione di nascita.
+- Test di validazione sui 5–10 modelli reali depositati in CdC: conversione PDF, controllo font, confronto stampa/anteprima.
+
+**Cosa NON entra:** firme digitali/OTP (Fase 2); conservazione a norma con valore probatorio (verifica legale esterna); PDF come template (mai).
+
+**Criteri di done:**
+- [ ] Carichi un modello Word reale dell'agenzia, lo approvi: passa a "depositata" e vedi il suo hash; provi a modificarlo: il sistema blocca.
+- [ ] Generi un documento da una pratica di prova, vedi l'anteprima PDF, lo stampi: stampa e anteprima coincidono.
+- [ ] Togli un dato obbligatorio dalla pratica e rigeneri: il sistema blocca ed elenca i campi mancanti.
+- [ ] "Genera pacchetto pratica" produce tutti i documenti previsti, e quelli condizionali solo se servono.
+- [ ] Modifichi un template: nasce una nuova versione; una pratica vecchia continua a usare la sua versione originale.
+
+**Rischi principali:** fedeltà dei font (mitigato: Liberation + test sui modelli reali **prima** di scrivere altro codice; se fallisce, si correggono i template, non il motore); artefatti della conversione `.doc`/`.odt`; deposito CdC da rinnovare a ogni modifica (il promemoria automatico arriva in S5).
+
+---
+
+## S3 — Privacy + Backup
+
+**Obiettivo (una riga):** il consenso privacy è gestito e tracciato come record immutabile, e i dati sono al sicuro con backup verificati. **Da qui in poi si possono inserire dati veri.**
+
+**Cosa entra:**
+- Informativa privacy auto-compilata dai dati del soggetto; stampa; import della scansione firmata con un click (associazione al soggetto).
+- Record consenso immutabile: soggetto, data, versione del modulo, hash, timestamp.
+- Cambio informativa → consensi pregressi marcati **scaduti** → ri-firma obbligatoria.
+- Allegato automatico dell'informativa alle pratiche.
+- Backup: script S0 su schedulazione (cron/launchd) + copia offsite cifrata + **test di ripristino mensile guidato** + alert se il backup fallisce o il disco si riempie.
+
+**Cosa NON entra:** firma OTP (Fase 2); conservazione sostitutiva con valore probatorio (verifica legale esterna).
+
+**Criteri di done:**
+- [ ] Generi l'informativa di un soggetto di prova: arriva compilata con i suoi dati.
+- [ ] Carichi la scansione firmata: vedi il record consenso con data, versione e hash.
+- [ ] Simuli un cambio informativa: il consenso vecchio risulta scaduto e l'app chiede la ri-firma.
+- [ ] Il backup parte da solo all'ora prevista; lo vedi nella destinazione offsite.
+- [ ] Fai il test di ripristino guidato: il database ripristinato su una copia si apre e contiene i dati.
+- [ ] Simuli un backup fallito (Claude ti dice come): arriva l'alert.
+
+**Rischi principali:** scansioni caricate nel posto sbagliato (mitigato: import un-click legato al soggetto); test di ripristino saltato per pigrizia (mitigato: è un task guidato con data); copia offsite nello stesso edificio (va verificato dove "abita" la destinazione).
+
+---
+
+## S4 — Scadenze locazioni
+
+**Obiettivo (una riga):** il sistema avvisa per tempo sui 3+2 con doppio trigger, invia email su conferma umana e chiude il ciclo fino alla risposta.
+
+**Cosa entra:**
+- Modello dati a **doppio trigger**: T1 fine triennio −7 mesi (disdetta vs rinnovo tacito), T2 fine biennio −6 mesi ("nuova stipula"); date dalla **proroga effettiva**; campi disdetta anticipata di inquilino e proprietario; disdetta inquilino registrata → stop notifiche.
+- Cron idempotente con retry + **dead man's switch** (alert se il job non gira).
+- Bozze email generate dall'AI tramite provider configurato (in dev: cloud, solo dati sintetici nei test), **modificabili, invio solo su conferma umana**.
+- SMTP con SPF/DKIM/DMARC + gestione bounce (email non valida → contatto segnalato da aggiornare).
+- Ciclo chiuso: reminder +7/+14/+30 ai non rispondenti; task operatore automatico a scadenza −6 mesi; dashboard "scadenze senza risposta".
+- Routing tre scenari: **A** chiusura/cessazione (il "no" del proprietario diventa lead vendita), **B** rinnovo (al triennio: tacito, registra e basta; al biennio: nuova stipula avviata), **C** in trattativa (task operatore + data di rientro).
+- Dicitura obbligatoria nel messaggio e nel gestionale: l'email raccoglie intenzioni, la disdetta formale resta raccomandata AR/PEC.
+
+**Cosa NON entra:** parsing AI delle risposte (Fase 2); tracking aperture e scoring (Fase 2, subordinati a GDPR); WhatsApp/SMS (Fase 2); messa in produzione del modulo senza la validazione legale l. 431/98.
+
+**Criteri di done:**
+- [ ] Crei un contratto di prova con date tali da far scattare T1: la scadenza compare in dashboard con il giorno giusto.
+- [ ] La bozza email arriva, la modifichi, e solo dopo il tuo "invia" parte davvero.
+- [ ] Registri la risposta "in trattativa": il contratto passa allo scenario C con task e data di rientro.
+- [ ] Registri una disdetta inquilino: le notifiche a quel proprietario si fermano.
+- [ ] Claude simula il cron fermo: il dead man's switch genera l'alert.
+- [ ] Mandi un'email a un indirizzo finto: il bounce viene registrato e il contatto segnalato.
+
+**Rischi principali:** il vizio legale sul trigger (mitigato: validazione l. 431/98 **in parallelo**, il modulo non va in produzione senza via libera); deliverability (SPF/DKIM/DMARC non opzionali); date sbagliate in anagrafica (fine biennio dalla proroga effettiva, non dall'inizio contratto).
+
+---
+
+## S5 — Proprietario & Contabilità operativa
+
+**Obiettivo (una riga):** alla firma nascono da soli i movimenti; il Proprietario vede gli incassi; il commercialista riceve un CSV pulito.
+
+**Cosa entra:**
+- Tabella movimenti unica (pratica, tipo, importo, stato, data, agente) con **generazione automatica alla firma** (provvigione, canone di gestione).
+- Stati previsto/fatturato/incassato; acconti, storni e note di credito come stati della stessa riga.
+- Dashboard Proprietario: incassi per mese/anno/tipologia/agente; margine per agente visibile **solo al Proprietario**.
+- Export CSV categorizzato per il commercialista (allineato alle sue categorie: va concordato con lui).
+- Scadenziario RLI a T+30 dalla registrazione del contratto **nel sistema**.
+- Alert **bloccante** su pagamento in contante ≥ 5.000 €; soglia 1.000 € configurabile etichettata "policy interna".
+- Promemoria deposito/ri-deposito formulari Camera di Commercio a ogni modifica dei modelli; dicitura "Adeguata verifica al conferimento dell'incarico"; disclaimer "adempimento non verificabile dal software"; conservazione 10 anni.
+
+**Cosa NON entra:** prima nota, IVA, fatture elettroniche, cespiti (restano al commercialista); spese (Fase 2: import in sola lettura); marketing "correttezza normativa garantita" (mai).
+
+**Criteri di done:**
+- [ ] Firmi (simuli) un contratto di prova: i movimenti provvigione/canone compaiono da soli con gli importi giusti.
+- [ ] Registri un acconto e uno storno: lo stato della riga cambia e i totali tornano.
+- [ ] Apri la dashboard come Proprietario: vedi incassi per mese e per agente, margini compresi; come Agente, i margini non ci sono.
+- [ ] Esporti il CSV e lo apri in Excel/Numbers: colonne categorizzate e totali corretti.
+- [ ] Registri un pagamento in contante da 5.500 €: il sistema blocca. Da 1.200 €: avvisa citando la "policy interna", non la legge.
+- [ ] Modifichi un template: compare il promemoria di ri-deposito in Camera di Commercio.
+
+**Rischi principali:** registro che diverge dai libri del commercialista (mitigato: riconciliazione mensile guidata in S8); aspettativa "mi fa anche la contabilità" (da chiarire subito: è contabilità operativa); categorie CSV non concordate col commercialista.
+
+---
+
+## S6 — JARVIS v1
+
+**Obiettivo (una riga):** JARVIS risponde in italiano leggendo il gestionale, propone azioni che l'umano approva con diff, e impara solo skill approvate.
+
+**Cosa entra:**
+- **Prototipo in Claude Design (prima del codice UI):** la schermata della chat JARVIS e del pannello approvazioni (diff prima/dopo) viene prima disegnata in Claude Design seguendo la checklist Design di `REGOLE.md`, fatta provare a segretaria/agenti, e solo poi implementata in Code.
+- Chat nell'app con risposte in italiano.
+- Tool **read-only** sul DB: elenco chiuso di funzioni deterministiche (cerca soggetto, elenca scadenze, stato pratica…) con validazione di ogni campo.
+- Switch provider da configurazione (cloud in dev ↔ locale quando disponibile), nessun endpoint fissato nel codice.
+- HITL con sostanza: ogni scrittura proposta mostra un **diff leggibile** dei dati chiave; conferma esplicita; tutto in audit log.
+- Libreria skill Markdown: JARVIS può **proporre** skill; attivazione solo con approvazione umana + commit Git; nessuna skill auto-attiva; **mai codice generato**.
+- Eval suite italiana eseguita e report archiviato (da rieseguire identica sul modello locale).
+
+**Cosa NON entra:** scrittura libera di JARVIS sul DB (solo tramite funzioni deterministiche approvate); skill auto-attive; nuove capacità oltre i tool approvati (Fase 2: estensione scrittura).
+
+**Criteri di done:**
+- [ ] Chiedi "quali pratiche scadono questo mese?": la risposta corrisponde a ciò che vedi nella dashboard.
+- [ ] Chiedi a JARVIS di modificare un dato: vedi il diff prima/dopo e nulla cambia finché non approvi; l'approvazione finisce nell'audit log.
+- [ ] JARVIS propone una skill: resta "in attesa" finché non la approvi; prima dell'approvazione non ha effetto.
+- [ ] Cambi provider nella configurazione e la chat continua a funzionare senza toccare codice.
+- [ ] Lanci la eval suite: report con esiti per caso, archiviato nel repo.
+
+**Rischi principali:** rubber-stamping ("approvo senza leggere" — mitigato: diff sostanziali, non un pulsante); tool-calling instabile su modelli locali (mitigato: verifica esistenza/benchmark del modello prima; provider cloud in dev); prompt injection (mitigato: elenco chiuso di tool, niente codice generato).
+
+---
+
+## S7 — OCR & Adempimenti
+
+**Obiettivo (una riga):** documenti e APE entrano nel gestionale con estrazione verificata e adempimenti a etichette parlanti, con l'umano che conferma campo per campo.
+
+**Cosa entra:**
+- Parser MRZ ICAO 9303 con **checksum bloccante** per CIE e passaporti.
+- Cross-check codice fiscale: ricalcolo deterministico da nome/cognome/nascita + check digit; mismatch → blocco e revisione.
+- Estrazione APE da PDF nativi: testo diretto (PyMuPDF/pdfplumber), whitelist layout regionali, validazione di dominio (classe A4–G, valori plausibili); layout sconosciuto → **coda di revisione umana**, mai mapping silenzioso.
+- Bake-off PaddleOCR-VL su **50+ documenti reali** (CI, CIE, passaporti, APE di almeno 3 regioni); criterio di kill: errore >2% sui campi anagrafici → fallback al vision LLM principale, decisione chiusa senza terzo round.
+- Form anti-automation-bias: split-screen estratto/immagine, conferma **campo per campo**, salvataggio bloccato se checksum/check digit falliscono, evidenziazione solo dei campi a bassa confidenza, log di ogni correzione.
+- Matrice adempimenti con etichette parlanti: "Comunicazione Questura entro 48h — ospiti extra-UE" (art. 7 D.Lgs 286/98); "Comunicazione Alloggiati Web entro 24h — locazione turistica, tutti gli ospiti" (TULPS 109); art. 12 DL 59/78 gestito in silenzio (assorbito dalla registrazione AdE) con tooltip; **nazionalità mancante → il sistema chiede, mai skip**.
+
+**Cosa NON entra:** GLM-OCR (mai); scoring energetico o altri riusi dei dati oltre lo scopo (bocciato, GDPR); verifica automatica autenticità APE su registri regionali dove non disponibile (resta controllo manuale).
+
+**Criteri di done:**
+- [ ] Carichi la scansione di una CIE di prova: i dati vengono estratti e tu li confermi campo per campo guardando l'immagine a fianco.
+- [ ] Un codice fiscale incoerente blocca il salvataggio con spiegazione chiara.
+- [ ] Carichi un APE di una regione in whitelist: i dati escono compilati; un APE di layout sconosciuto finisce in coda revisione senza dati inventati.
+- [ ] Vedi il report del bake-off con la percentuale di errore e la decisione (PaddleOCR-VL tenuto o fallback).
+- [ ] Su una pratica con ospite extra-UE compare il compito "Comunicazione Questura entro 48h"; su una locazione turistica compare Alloggiati Web per tutti gli ospiti; se la nazionalità manca, l'app la chiede.
+
+**Rischi principali:** corpus di documenti reali difficile da raccogliere (privacy: solo con consenso o anonimizzati); automation bias degli operatori (la frizione del form è voluta, non va "resa comoda"); errori residui OCR su documenti fotografati male.
+
+---
+
+## S8 — Hardening & Go-live
+
+**Obiettivo (una riga):** il sistema è sicuro, ripristinabile, documentato, e va in produzione sul Mac Mini M4 con l'AI locale.
+
+**Cosa entra:**
+- DPIA ex art. 35 GDPR; retention immagini (cancellazione dopo estrazione o retention breve motivata); cifratura dati e backup; accessi loggati.
+- **Riconciliazione mensile guidata** registro ↔ banca/commercialista (task con checklist).
+- Monitoraggio e alert: backup, disco pieno, dead man's switch, bounce email.
+- Packaging: avvio automatico con launchd; script di installazione/aggiornamento.
+- Migrazione sul Mac Mini M4: installazione, **ripristino da backup**, switch provider a Ollama locale (dopo verifica modello: nome esatto, pesi, benchmark), **riesecuzione eval suite sul modello locale**.
+- Documentazione utente semplice in italiano + **manuale di ripristino disastro** (per chi erediterà il sistema).
+- Collaudo finale con checklist go-live.
+
+**Cosa NON entra:** tutto il parcheggio Fase 2; ottimizzazioni non richieste dai test.
+
+**Criteri di done:**
+- [ ] Riavvii il Mac Mini: l'app riparte da sola e fai login senza toccare il Terminale.
+- [ ] Simuli il disastro seguendo il manuale (Mac di riserva o cartella pulita): ripristini dal backup offsite e ritrovi i dati.
+- [ ] La eval suite gira sul modello locale e il report è archiviato nel repo.
+- [ ] Una persona non tecnica segue la documentazione utente e riesce a creare una pratica e generare un documento senza chiedere aiuto.
+- [ ] Completi la prima riconciliazione mensile guidata: registro e banca quadrano (o le differenze sono elencate).
+- [ ] La checklist go-live è tutta spuntata e firmata (DPIA compresa).
+
+**Rischi principali:** hardware single point of failure (mitigato: backup offsite + manuale ripristino provato); modello locale diverso dalle aspettative (mitigato: eval locale prima del go-live, provider cloud resta configurabile come ripiego temporaneo solo se compatibile con la privacy — dati reali mai in cloud); documentazione scritta "da tecnico" (mitigato: test su persona non tecnica come criterio di done).
+
+---
+
+## Parcheggio — Fase 2 (da non iniziare prima del go-live)
+
+Nessuno di questi punti entra negli sprint S0–S8. Se emergono in sessione, si annotano qui e basta.
+
+- **Firma OTP via link** — subordinata a verifica eIDAS.
+- **Tracking aperture email** — solo con informativa e consenso GDPR.
+- **Parsing AI delle risposte** alle email di scadenza — con base giuridica e DPA col provider.
+- **Import spese** in sola lettura dal commercialista.
+- **WhatsApp Business** — solo valutando l'API ufficiale (costi/burocrazia); mai API non ufficiali (rischio ban).
+- **Estensione scrittura JARVIS** oltre le funzioni deterministiche approvate.
+- **Scoring proprietari** — solo con base giuridica solida.
+- *(punti da calendario, non da roadmap: documentazione di installazione pubblicabile; scansione vision dell'archivio cartaceo storico.)*
