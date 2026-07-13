@@ -16,5 +16,7 @@ Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM
 | `R2_stack_brief.md` | Verifica fattuale stack tecnico e normativa (con fonti) |
 | `R3_memoria_brief.md` | Verifica fattuale memoria personale/RAG locale per JARVIS (con fonti) |
 | `R4_automazioni_brief.md` | Verifica fattuale motori di automazione e pattern sicuri (con fonti) |
+| `R5_inference_brief.md` | Verifica fattuale engine DS4/antirez e quantizzazione dinamica (con fonti) |
+| `R6_hardware_brief.md` | Verifica fattuale hardware di produzione: Mac, alternative, prezzi 2026 (con fonti) |
 
 Il registro decisioni operativo è `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46): in caso di conflitto tra questi verbali e gli ADR, **vincono gli ADR**.
