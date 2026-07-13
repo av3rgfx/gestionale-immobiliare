@@ -8,7 +8,7 @@
 - I **criteri di done** sono scritti per essere verificati da un non-sviluppatore: se non riesci a verificarli tu, lo sprint non è finito.
 - La colonna "Cosa NON entra" è importante quanto quella "Cosa entra": tutto ciò che non è previsto va nel **parcheggio Fase 2**, senza eccezioni.
 
-## Ambienti di lavoro (decisione ADR-13)
+## Ambienti di lavoro (decisione ADR-47, ex ADR-13)
 
 | Sprint | Ambiente |
 |---|---|
@@ -20,10 +20,10 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 ## Regole della roadmap (non negoziabili)
 
 1. **Prima il gestionale senza AI.** JARVIS arriva allo sprint S6, prima in sola lettura.
-2. **Backup attivo prima di qualsiasi dato vero:** bozza dello script in S0, sistema completo (cron + offsite + restore test + alert) in S3. Fino ad allora, solo dati finti.
+2. **Backup attivo prima di qualsiasi dato vero:** bozza dello script in S0, sistema completo (schedulazione launchd + offsite + restore test + alert) in S3. Fino ad allora, solo dati finti.
 3. **Mai dati reali dei clienti verso API cloud** in sviluppo: solo dati sintetici o anonimizzati.
 4. **Astrazione provider LLM fin da S0** (`base_url`/`model` configurabili): il passaggio cloud → Ollama locale (S8) deve essere un cambio di configurazione.
-5. **Eval suite dal S0**, rieseguita sul modello locale quando disponibile (S6, S8).
+5. **Eval suite dal S0** (su cloud). Prima esecuzione sul **modello locale** = criterio di done di **S6**, ripetuta in S7 e S8 (ADR-48); il **Mac Mini M4 con Ollama va acquistato e configurato prima dell'inizio di S6**. Se l'eval locale fallisce, S7 non parte: si cambia modello, non architettura.
 6. **Verifiche esterne obbligatorie** (vedi sotto) corrono *in parallelo* agli sprint, non dopo.
 
 ### Verifiche esterne obbligatorie (fuori dal codice, da calendarizzare)
@@ -36,7 +36,9 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 | Verifica soglie AML con il consulente antiriciclaggio dell'agenzia | durante S5 | consulente AML |
 | Assemblare il corpus di 50+ documenti reali (CI, CIE, passaporti, APE di almeno 3 regioni) | prima di S7 | agenzia |
 | Verifica esistenza del modello locale scelto (nome esatto, pesi, benchmark) | prima di S6 | con Claude |
-| DPIA ex art. 35 GDPR | durante S8, prima del go-live | con Claude + eventuale consulente privacy |
+| Acquisto e configurazione del Mac Mini M4 con Ollama (ADR-48) | prima di S6 | agenzia |
+| DPIA ex art. 35 GDPR in due tempi: **bozza prima di S3**, aggiornamento prima di S7, chiusura formale in S8 (verbale C7) | da S3 in poi | con Claude + eventuale consulente privacy |
+| Conferma retention differenziata immagini documenti (ADR-49) | durante S5 | consulente AML |
 
 ---
 
@@ -67,14 +69,15 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 ## S1 — Core gestionale
 
-**Obiettivo (una riga):** l'app esiste: login con ruoli, audit log, e si gestiscono soggetti e immobili con il blocco APE sulle pratiche.
+**Obiettivo (una riga):** l'app esiste: login con ruoli, audit log, e si gestiscono soggetti e immobili con il presidio APE sulle pratiche.
 
 **Cosa entra:**
 - Scaffold FastAPI + SQLite in modalità WAL; tabelle iniziali dal modello dati di `04_ARCHITETTURA.md` §3.
 - Login con 4 ruoli: Proprietario, Admin, Agente, Segretaria (permessi differenziati).
 - Audit log immutabile: chi, cosa, quando, su quale record.
 - CRUD soggetti (persone fisiche e giuridiche) con validazione codice fiscale (check digit).
-- CRUD immobili con dati catastali e APE associata; **blocco**: nessuna pratica creabile su immobile senza APE.
+- CRUD immobili con dati catastali e APE associata; **presidio APE** (verbale C7): la pratica si può creare anche senza APE, ma APE mancante/scaduta = **compito bloccante ben visibile** sulla pratica + **blocco della generazione dei documenti che la richiedono** (ADR-21); esenzione registrabile con motivo.
+- Convenzione **migrazioni di schema** attiva da subito: script SQL numerati nel repo + backup automatico prima di ogni migrazione (04 §8.3).
 - UI semplice: liste, form, messaggi di errore in italiano chiaro.
 
 **Cosa NON entra:** generazione documenti (S2), privacy (S3), scadenze (S4), movimenti (S5), AI (S6).
@@ -83,7 +86,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Apri l'app nel browser, fai login come Agente e come Segretaria: vedi menu diversi.
 - [ ] Crei un soggetto con codice fiscale sbagliato: l'app lo rifiuta con un messaggio comprensibile.
 - [ ] Crei un soggetto corretto, chiudi e riapri: è ancora nella lista.
-- [ ] Crei un immobile senza APE e provi ad aprire una pratica: l'app blocca e spiega perché.
+- [ ] Crei un immobile senza APE e apri una pratica: compare il compito bloccante "APE mancante" e, se provi a generare un documento che la richiede, l'app blocca e spiega perché.
 - [ ] Chiedi a Claude di mostrarti l'audit log: vedi le operazioni che hai appena fatto, con data e utente.
 
 **Rischi principali:** scope creep verso documenti/scadenze ("già che ci siamo…"); UI troppo ricca; permessi dei ruoli da definire con l'agenzia prima di codificarli.
@@ -125,8 +128,11 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - Informativa privacy auto-compilata dai dati del soggetto; stampa; import della scansione firmata con un click (associazione al soggetto).
 - Record consenso immutabile: soggetto, data, versione del modulo, hash, timestamp.
 - Cambio informativa → consensi pregressi marcati **scaduti** → ri-firma obbligatoria.
-- Allegato automatico dell'informativa alle pratiche.
-- Backup: script S0 su schedulazione (cron/launchd) + copia offsite cifrata + **test di ripristino mensile guidato** + alert se il backup fallisce o il disco si riempie.
+- Allegato automatico dell'informativa alle pratiche (l'informativa è un Template della pipeline documentale — 04 §5).
+- Backup: script S0 su schedulazione (launchd) + copia offsite cifrata + **test di ripristino mensile guidato** + alert se il backup fallisce o il disco si riempie.
+- **Presidi sui dati reali, prima che entrino** (verbale C7): FileVault attivo sulla macchina che ospita `~/Gestionale/` (verifica guidata), verifica che la copia offsite sia cifrata davvero, accessi alle scansioni dei consensi tracciati in AuditLog.
+- **Bozza DPIA** (art. 35) predisposta prima dell'inserimento dei primi dati veri (la chiusura formale resta in S8).
+- **Import guidato dei dati esistenti** dell'agenzia (CSV: anagrafiche, immobili, contratti in corso), con responsabile e verifica.
 
 **Cosa NON entra:** firma OTP (Fase 2); conservazione sostitutiva con valore probatorio (verifica legale esterna).
 
@@ -137,6 +143,8 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Il backup parte da solo all'ora prevista; lo vedi nella destinazione offsite.
 - [ ] Fai il test di ripristino guidato: il database ripristinato su una copia si apre e contiene i dati.
 - [ ] Simuli un backup fallito (Claude ti dice come): arriva l'alert.
+- [ ] FileVault risulta attivo e la copia offsite è cifrata (verifica guidata).
+- [ ] I contratti veri in corso sono nel sistema (import completato) **prima dell'inizio di S4**.
 
 **Rischi principali:** scansioni caricate nel posto sbagliato (mitigato: import un-click legato al soggetto); test di ripristino saltato per pigrizia (mitigato: è un task guidato con data); copia offsite nello stesso edificio (va verificato dove "abita" la destinazione).
 
@@ -162,7 +170,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] La bozza email arriva, la modifichi, e solo dopo il tuo "invia" parte davvero.
 - [ ] Registri la risposta "in trattativa": il contratto passa allo scenario C con task e data di rientro.
 - [ ] Registri una disdetta inquilino: le notifiche a quel proprietario si fermano.
-- [ ] Claude simula il cron fermo: il dead man's switch genera l'alert.
+- [ ] Claude simula il job schedulato fermo: il dead man's switch genera l'alert.
 - [ ] Mandi un'email a un indirizzo finto: il bounce viene registrato e il contatto segnalato.
 
 **Rischi principali:** il vizio legale sul trigger (mitigato: validazione l. 431/98 **in parallelo**, il modulo non va in produzione senza via libera); deliverability (SPF/DKIM/DMARC non opzionali); date sbagliate in anagrafica (fine biennio dalla proroga effettiva, non dall'inizio contratto).
@@ -180,7 +188,9 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - Export CSV categorizzato per il commercialista (allineato alle sue categorie: va concordato con lui).
 - Scadenziario RLI a T+30 dalla registrazione del contratto **nel sistema**.
 - Alert **bloccante** su pagamento in contante ≥ 5.000 €; soglia 1.000 € configurabile etichettata "policy interna".
-- Promemoria deposito/ri-deposito formulari Camera di Commercio a ogni modifica dei modelli; dicitura "Adeguata verifica al conferimento dell'incarico"; disclaimer "adempimento non verificabile dal software"; conservazione 10 anni.
+- Promemoria deposito/ri-deposito formulari Camera di Commercio a ogni modifica dei modelli; disclaimer "adempimento non verificabile dal software"; conservazione 10 anni.
+- **Adeguata verifica AML come task bloccante all'apertura pratica** (verbale C7): spunta con operatore e data, traccia in audit, conservazione 10 anni — non una semplice dicitura. Etichetta: "Adeguata verifica al conferimento dell'incarico" (nessuna soglia).
+- **Audit delle consultazioni delle etichette compliance** (ADR-45): chi vide quale etichetta, quando, con quale versione della norma.
 
 **Cosa NON entra:** prima nota, IVA, fatture elettroniche, cespiti (restano al commercialista); spese (Fase 2: import in sola lettura); marketing "correttezza normativa garantita" (mai).
 
@@ -190,6 +200,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Apri la dashboard come Proprietario: vedi incassi per mese e per agente, margini compresi; come Agente, i margini non ci sono.
 - [ ] Esporti il CSV e lo apri in Excel/Numbers: colonne categorizzate e totali corretti.
 - [ ] Registri un pagamento in contante da 5.500 €: il sistema blocca. Da 1.200 €: avvisa citando la "policy interna", non la legge.
+- [ ] Apri una nuova pratica: compare il task bloccante di adeguata verifica, e finché non lo spunti la pratica lo segnala.
 - [ ] Modifichi un template: compare il promemoria di ri-deposito in Camera di Commercio.
 
 **Rischi principali:** registro che diverge dai libri del commercialista (mitigato: riconciliazione mensile guidata in S8); aspettativa "mi fa anche la contabilità" (da chiarire subito: è contabilità operativa); categorie CSV non concordate col commercialista.
@@ -204,10 +215,10 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - **Prototipo in Claude Design (prima del codice UI):** la schermata della chat JARVIS e del pannello approvazioni (diff prima/dopo) viene prima disegnata in Claude Design seguendo la checklist Design di `REGOLE.md`, fatta provare a segretaria/agenti, e solo poi implementata in Code.
 - Chat nell'app con risposte in italiano.
 - Tool **read-only** sul DB: elenco chiuso di funzioni deterministiche (cerca soggetto, elenca scadenze, stato pratica…) con validazione di ogni campo.
-- Switch provider da configurazione (cloud in dev ↔ locale quando disponibile), nessun endpoint fissato nel codice.
+- Switch provider da configurazione (cloud in dev ↔ locale), nessun endpoint fissato nel codice. **Prerequisito di sprint: Mac Mini M4 acquistato e configurato con Ollama (ADR-48)** — senza, S6 non si chiude.
 - HITL con sostanza: ogni scrittura proposta mostra un **diff leggibile** dei dati chiave; conferma esplicita; tutto in audit log.
 - Libreria skill Markdown: JARVIS può **proporre** skill; attivazione solo con approvazione umana + commit Git; nessuna skill auto-attiva; **mai codice generato**.
-- Eval suite italiana eseguita e report archiviato (da rieseguire identica sul modello locale).
+- Eval suite italiana eseguita su cloud **e sul modello locale** (prima esecuzione locale = criterio di done — ADR-48); report archiviati.
 
 **Cosa NON entra:** scrittura libera di JARVIS sul DB (solo tramite funzioni deterministiche approvate); skill auto-attive; nuove capacità oltre i tool approvati (Fase 2: estensione scrittura).
 
@@ -217,6 +228,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] JARVIS propone una skill: resta "in attesa" finché non la approvi; prima dell'approvazione non ha effetto.
 - [ ] Cambi provider nella configurazione e la chat continua a funzionare senza toccare codice.
 - [ ] Lanci la eval suite: report con esiti per caso, archiviato nel repo.
+- [ ] La eval suite gira anche **sul modello locale** (Ollama sul Mac Mini) e il report è archiviato; se fallisce, S7 non parte: si cambia modello, non architettura (ADR-48).
 
 **Rischi principali:** rubber-stamping ("approvo senza leggere" — mitigato: diff sostanziali, non un pulsante); tool-calling instabile su modelli locali (mitigato: verifica esistenza/benchmark del modello prima; provider cloud in dev); prompt injection (mitigato: elenco chiuso di tool, niente codice generato).
 
@@ -233,6 +245,11 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - Bake-off PaddleOCR-VL su **50+ documenti reali** (CI, CIE, passaporti, APE di almeno 3 regioni); criterio di kill: errore >2% sui campi anagrafici → fallback al vision LLM principale, decisione chiusa senza terzo round.
 - Form anti-automation-bias: split-screen estratto/immagine, conferma **campo per campo**, salvataggio bloccato se checksum/check digit falliscono, evidenziazione solo dei campi a bassa confidenza, log di ogni correzione.
 - Matrice adempimenti con etichette parlanti: "Comunicazione Questura entro 48h — ospiti extra-UE" (art. 7 D.Lgs 286/98); "Comunicazione Alloggiati Web entro 24h — locazione turistica, tutti gli ospiti" (TULPS 109); art. 12 DL 59/78 gestito in silenzio (assorbito dalla registrazione AdE) con tooltip; **nazionalità mancante → il sistema chiede, mai skip**.
+- **Retention immagini costruita dentro la pipeline** (ADR-49): immagini a sola estrazione cancellate; copie AML conservate 10 anni cifrate e ad accesso loggato. **Nessun documento d'identità reale entra prima di questi presidi.**
+- **Verifica autenticità APE come flusso manuale guidato**: task "verifica su SIAPE/registro regionale" con esito in `stato_verifica` e traccia in audit (integrazione automatica coi registri: Fase 2).
+- **Aggiornamento DPIA** prima dello sprint (copre anche la base giuridica del corpus del bake-off).
+- **Prova del form campo-per-campo con un utente reale** (segretaria/agente) prima di dichiarare chiuso lo sprint.
+- Riesecuzione eval suite sul modello locale (ADR-48).
 
 **Cosa NON entra:** GLM-OCR (mai); scoring energetico o altri riusi dei dati oltre lo scopo (bocciato, GDPR); verifica automatica autenticità APE su registri regionali dove non disponibile (resta controllo manuale).
 
@@ -252,11 +269,11 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 **Obiettivo (una riga):** il sistema è sicuro, ripristinabile, documentato, e va in produzione sul Mac Mini M4 con l'AI locale.
 
 **Cosa entra:**
-- DPIA ex art. 35 GDPR; retention immagini (cancellazione dopo estrazione o retention breve motivata); cifratura dati e backup; accessi loggati.
+- **Chiusura formale della DPIA** (bozza da S3, aggiornata in S7); verifica finale di retention immagini (ADR-49), cifratura dati e backup, accessi loggati.
 - **Riconciliazione mensile guidata** registro ↔ banca/commercialista (task con checklist).
 - Monitoraggio e alert: backup, disco pieno, dead man's switch, bounce email.
 - Packaging: avvio automatico con launchd; script di installazione/aggiornamento.
-- Migrazione sul Mac Mini M4: installazione, **ripristino da backup**, switch provider a Ollama locale (dopo verifica modello: nome esatto, pesi, benchmark), **riesecuzione eval suite sul modello locale**.
+- Migrazione sul Mac Mini M4: installazione, **ripristino da backup**, consolidamento del provider Ollama locale (attivo dal S6 — ADR-48), **riesecuzione eval suite sul modello locale**.
 - Documentazione utente semplice in italiano + **manuale di ripristino disastro** (per chi erediterà il sistema).
 - Collaudo finale con checklist go-live.
 

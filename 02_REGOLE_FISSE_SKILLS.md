@@ -163,7 +163,7 @@ In fase di progettazione sono stati verificati uno per uno gli strumenti ("skill
 | `vercel web-design-guidelines` | Buona, ma avere **due fonti di regole di design** (questa + impeccable) crea paralisi e contraddizioni. Si è scelto di tenerne una sola. |
 | `ui-ux-pro-max` | Alternativa di design valutata in fase di ricerca, non scelta: impeccable copre già il bisogno (schermate semplici per strumento interno). |
 
-**Nota onesta:** in fase di progettazione si era deciso di lavorare nella sezione Progetti di Claude Desktop, rinviando la valutazione di Claude Code. La decisione è stata poi cambiata (vedi `03_DECISIONI_CONSIGLIO.md`, ADR-13): **si lavora direttamente in Code fin dalla sessione 1** — è l'ambiente tecnicamente corretto per queste metodologie (sub-agenti veri, lavoro diretto sui file, GitHub integrato), e con le regole nel repository l'attrito in più è minimo. La sezione Progetti non si usa.
+**Nota onesta:** in fase di progettazione si era deciso di lavorare nella sezione Progetti di Claude Desktop, rinviando la valutazione di Claude Code. La decisione è stata poi cambiata (vedi `03_DECISIONI_CONSIGLIO.md`, ADR-47, ex ADR-13): **si lavora direttamente in Code fin dalla sessione 1** — è l'ambiente tecnicamente corretto per queste metodologie (sub-agenti veri, lavoro diretto sui file, GitHub integrato), e con le regole nel repository l'attrito in più è minimo. La sezione Progetti non si usa.
 
 ### Il consiglio completo (skill llm-council): quando convocarlo
 

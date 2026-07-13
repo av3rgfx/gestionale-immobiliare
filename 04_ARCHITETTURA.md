@@ -2,7 +2,7 @@
 
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale.
 **Ambiente di produzione:** Mac Mini M4, rete LAN dell'agenzia (2-5 utenti).
-**Ambiente di sviluppo:** sessioni nella sezione **Code** di Claude Desktop (ADR-13), repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
+**Ambiente di sviluppo:** sessioni nella sezione **Code** di Claude Desktop (ADR-47), repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
 **Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46).
 
 ---
@@ -14,7 +14,7 @@ Il sistema è il **registro operativo** di una piccola agenzia immobiliare: anag
 Principi non negoziabili (violare uno di questi = blocco dello sprint):
 
 1. **Deterministico prima dell'AI.** Documenti legali, calcoli, scadenze e adempimenti escono da template versionati e da codice. L'LLM non è mai autore di testo legale né di logica di calcolo (ADR-02).
-2. **Tutto locale.** In produzione nessun dato lascia il Mac Mini: LLM via Ollama, OCR locale, nessuna API cloud. In sviluppo, le API cloud vedono **solo dati sintetici o anonimizzati** (ADR-01, ADR-05).
+2. **Tutto locale.** In produzione nessun dato lascia il Mac Mini: LLM via Ollama, OCR locale, nessuna API cloud. In sviluppo, le API cloud vedono **solo dati sintetici o anonimizzati** (ADR-01, ADR-05). **Unica eccezione dichiarata**: l'invio delle email di notifica via SMTP (§6), circoscritta ai dati minimi necessari al messaggio, con DPA col provider e copertura nell'informativa — da predisporre prima di S4 (verbale C7).
 3. **A prova di stupido.** L'utente tipo è una segretaria non tecnica: messaggi di errore in italiano semplice, azioni guidate, nessuna configurazione manuale di file.
 4. **Backup verificabile.** Un backup mai ripristinato non è un backup: snapshot schedulato + copia offsite cifrata + restore test mensile + alert (ADR-06).
 5. **Human-in-the-loop con audit.** Ogni scrittura rilevante passa da un umano che vede un **diff leggibile**, conferma esplicitamente, e lascia traccia immutabile: chi, cosa, quando, con quale versione di template e di modello (ADR-07, ADR-08).
@@ -30,7 +30,7 @@ Stack unico, tecnologie mature ("noiose") e installabili via `pip`/`brew` (ADR-0
 |---|---|---|
 | Backend | **FastAPI** (Python) | API REST, logica applicativa, job schedulati |
 | Database | **SQLite in modalità WAL** | File unico, regge 2-5 utenti LAN; backup via `sqlite3 .backup` |
-| Template documenti | **docxtpl** (Jinja2 dentro DOCX) | Riempimento deterministici dei modelli |
+| Template documenti | **docxtpl** (Jinja2 dentro DOCX) | Riempimento deterministico dei modelli |
 | Conversione | **LibreOffice headless** (`soffice --headless --convert-to pdf`) | DOCX → PDF identico alla stampa |
 | Font | **Liberation** (metricamente compatibili con Calibri/Cambria) | Fedeltà tipografica anteprima/stampa (ADR-16) |
 | Anteprima | **PDF.js** | Visualizzazione del PDF archiviato nel browser |
@@ -92,13 +92,14 @@ Persona fisica o giuridica coinvolta in una pratica (cliente, controparte, ospit
 
 ### 3.2 Immobile
 - Dati catastali e indirizzo, tipologia, metratura, stato (disponibile/in trattativa/locato/venduto/ritirato).
-- **Blocco APE**: classe energetica (dominio A4–G), **EPgl,nren** (numerico plausibile), **data scadenza APE**, **path file** dell'attestato, **stato verifica autenticità** (`verificato_registro` / `da_verificare` / `non_verificabile`), layout riconosciuto in whitelist o in coda revisione (ADR-37).
+- **Sezione APE** *(gruppo di campi; rinominata da "Blocco APE" per evitare l'omonimia con la regola di blocco — verbale C7)*: classe energetica (dominio A4–G), **EPgl,nren** (numerico plausibile), **data scadenza APE**, **path file** dell'attestato, **stato verifica autenticità** (`verificato_registro` / `da_verificare` / `non_verificabile`), layout riconosciuto in whitelist o in coda revisione (ADR-37); **esenzione APE** registrabile con motivo (es. box, ruderi, categorie esenti).
 
 ### 3.3 Pratica
 Contenitore operativo di una trattativa.
 - Tipo pratica (vendita, locazione abitativa, locazione turistica, ecc.), stato, agente responsabile, soggetti coinvolti (ruolo per soggetto), immobili collegati.
 - Flag condizionali per i moduli (es. `prevede_mutuo` → include modulo mutuo nel pacchetto — ADR-22).
 - Data firma contratto (evento che genera i Movimenti — ADR-40).
+- **Presidio APE**: la pratica è creabile anche senza APE, ma APE mancante/scaduta genera un **Task bloccante ben visibile** sulla pratica e **blocca la generazione dei documenti che la richiedono** (applicazione di ADR-21); l'esenzione registrata con motivo disattiva il presidio (verbale C7).
 
 ### 3.4 ContrattoLocazione
 - Tipo contratto (3+2 canone concordato, transitorio, turistico…), canone, deposito, date di stipula e decorrenza.
@@ -145,7 +146,12 @@ Riga economica **auto-generata** alla firma del contratto (ADR-40, ADR-41).
 ### 3.11 AuditLog *(immutabile)*
 - Chi (utente), cosa (entità + azione + diff dei campi chiave), quando, da quale sessione.
 - **Versione del template** e **versione del modello LLM** coinvolti nell'azione (quando rilevante) — ADR-08.
-- Include: approvazioni HITL, conferme invio email, correzioni OCR (metrica accuracy — ADR-34), consultazioni di etichette compliance (ADR-45).
+- Include: approvazioni HITL, conferme invio email, correzioni OCR (metrica accuracy — ADR-34), consultazioni di etichette compliance (ADR-45), consultazioni/download delle scansioni di consensi e documenti (verbale C7).
+
+### 3.12 Task
+Compito operativo generato dal sistema, sempre visibile finché non chiuso (verbale C7).
+- Tipo, riferimento (entità + id), assegnatario (utente o ruolo), data scadenza, stato (`aperto` / `completato`), esito/nota.
+- Usato da: scadenze locazioni (ADR-29), adeguata verifica AML all'apertura pratica (ADR-44), riconciliazione mensile (ADR-46), verifica autenticità APE (ADR-37), presidio APE (§3.3), test di ripristino backup (ADR-06).
 
 ---
 
@@ -158,7 +164,7 @@ Un unico client LLM con due soli parametri configurabili: **`base_url`** e **`mo
 
 - **Produzione**: `base_url` → Ollama locale (`/v1`, API OpenAI-compatible). Modello 27B-classe Q4 su Mac Mini M4 24GB (sweet spot: ~17GB modello + OS).
 - **Sviluppo**: `base_url` → API cloud (OpenAI-compatible). **Mai dati clienti reali**: solo sintetici/anonimizzati (ADR-05).
-- La stessa **eval suite italiana** gira identica su cloud e su locale, rieseguita sul modello locale **dal secondo sprint** (non alla fine).
+- La stessa **eval suite italiana** gira identica su cloud e su locale. Prima esecuzione sul modello locale = **criterio di done di S6**, ripetuta in S7 e S8 (ADR-48); il **Mac Mini M4 con Ollama deve essere disponibile prima dell'inizio di S6**. Se l'eval locale fallisce, S7 non parte: si cambia modello, non architettura.
 - ⚠️ **Verifica esterna obbligatoria**: nome, pesi e benchmark del modello scelto ("Gemma 4 26B-A4B" non corrisponde a release note pubbliche; alternativa Qwen 27B Q4). Decisione di modello subordinata a questa verifica.
 - Nota tecnica: l'API OpenAI-compatible di Ollama supporta i tools ma **non** `tool_choice` — il gateway JARVIS deve gestirlo (niente dipendenze da quel parametro).
 
@@ -186,7 +192,7 @@ JARVIS propone → funzione deterministica valida OGNI campo
 
 ### 4.5 Eval suite italiana
 - Dataset di test in italiano (intenti tipici dell'agenzia) costruito su **dati sintetici/anonimizzati**.
-- Eseguita a ogni cambio di modello/prompt e **dal secondo sprint** anche sul modello locale: la metrica di accettazione deve reggere in produzione, non solo in dev.
+- Eseguita a ogni cambio di modello/prompt e, **da S6** (ADR-48), anche sul modello locale: la metrica di accettazione deve reggere in produzione, non solo in dev.
 
 ---
 
@@ -215,6 +221,7 @@ Regole operative:
 6. **Correzione dati → rigenerazione esplicita** (nuova istanza), mai modifica a vista del PDF (ADR-14).
 7. **Import `.doc`/`.odt`**: conversione una tantum in `.docx` → nasce **bozza** da approvare, mai versione depositata (ADR-17). **PDF mai come template** (ADR-19).
 8. **Versioni depositate**: hash SHA-256, stato bozza/depositata/ritirata, lock, approvazione con ruoli; cambio modello → nuova versione + **ri-deposito in Camera di Commercio**; pratiche in corso ancorate alla versione di nascita (ADR-18, ADR-44).
+9. **L'informativa privacy è un template come gli altri**: il modulo dell'informativa vive in questa stessa pipeline come Template versionato; la `versione del modulo` del RecordConsenso è il suo `template_version_id`, e l'allegato automatico alle pratiche usa il meccanismo del pacchetto (ADR-20, ADR-22). Nessun motore parallelo (verbale C7).
 
 ⚠️ **Gate pre-codice**: validazione su 5-10 modelli reali depositati (conversione PDF, font, dry-run, confronto stampa/anteprima). Se fallisce, si correggono i template, non il motore.
 
@@ -288,7 +295,7 @@ Documento caricato
 Regole operative:
 
 1. **GLM-OCR escluso** (italiano non supportato — ADR-31). Bake-off obbligatorio su **50+ documenti reali** (CI, CIE, passaporti, APE di ≥3 regioni): errore >2% su campi anagrafici → fallback al vision LLM principale; decisione chiusa (ADR-33).
-2. **Autenticità APE**: verifica su registro regionale/SIAPE dove disponibile; `stato_verifica` nel blocco APE dell'Immobile. Parsare un PDF falso è peggio che non parsarlo (ADR-37).
+2. **Autenticità APE**: in v1 è un **flusso manuale guidato** — Task "verifica su SIAPE/registro regionale" con esito registrato in `stato_verifica` (sezione APE dell'Immobile) e traccia in AuditLog; l'integrazione automatica coi registri è parcheggiata in Fase 2 (ADR-37, verbale C7). Parsare un PDF falso è peggio che non parsarlo.
 3. **Codice fiscale** ricalcolato deterministicamente dai dati estratti + check digit: costo zero, validazione incrociata sempre attiva (ADR-35).
 4. **Matrice adempimenti con etichette parlanti**: il sistema risolve *tipo pratica × categoria soggetto × registrazione* e mostra compiti, non articoli (ADR-36):
    - «Comunicazione Questura entro 48h — ospiti extra-UE» (art. 7 D.Lgs 286/98)
@@ -313,16 +320,22 @@ job notturno (launchd): sqlite3 .backup → ~/Gestionale/backup/db_YYYYMMDD.sqli
    alert anche su: backup non eseguito, disco quasi pieno
 ```
 - L'hardware (Mac Mini) è single point of failure: la **procedura** non può esserlo.
+- **Rotazione dei backup** (es. 30 snapshot giornalieri + 12 mensili) e `PRAGMA integrity_check` sulla copia a ogni snapshot (verbale C7).
 - Documentazione di ripristino in italiano semplice (bus factor).
 
 ### 8.2 Sicurezza dati
 - **Cifratura** dei dati sensibili (documenti d'identità, scansioni consensi) e della copia offsite.
 - **Accessi loggati**: ogni consultazione di dati sensibili lascia traccia in AuditLog.
-- **Retention immagini documento**: le immagini da cui sono stati estratti i dati sono cancellate dopo l'estrazione, oppure conservate con retention breve e motivata; distinzione netta tra **dati estratti** (restano nel DB) e **immagine** (ADR-38).
+- **Retention immagini documento — differenziata per finalità** (ADR-49): le immagini a soli fini di estrazione sono cancellate dopo l'estrazione (ADR-38); le copie richieste dall'adeguata verifica antiriciclaggio sono conservate **10 anni, cifrate e ad accesso loggato** (ADR-46); distinzione netta tra **dati estratti** (restano nel DB) e **immagine**.
 - **Login e ruoli** come da §3.10; nessun accesso anonimo.
 
-### 8.3 GDPR
-- **DPIA ex art. 35 prima del go-live** (trattamento di documenti d'identità e dati particolari).
+### 8.3 Migrazioni di schema (verbale C7)
+- Modifiche allo schema SQLite solo tramite **script SQL numerati e versionati nel repo** (es. `migrazioni/001_....sql`), applicati in ordine.
+- Ogni migrazione esegue **prima un backup automatico** (`sqlite3 .backup`); nessuna modifica manuale allo schema in produzione.
+- Convenzione attiva da S1 e obbligatoria da S3 (dati reali nel sistema).
+
+### 8.4 GDPR
+- **DPIA ex art. 35 in due tempi**: bozza **prima di S3** (l'art. 35 la richiede *prima* del trattamento, non del go-live), aggiornamento prima di S7 (copre anche la base giuridica del corpus del bake-off OCR), chiusura formale in S8 (verbale C7).
 - Informativa e base giuridica specifiche per le scansioni; il processing locale su M4 è l'argomento privacy-by-design e va usato (ADR-38).
 - **Conservazione documentale 10 anni** per i documenti AML e di gestione (ADR-46).
 - Niente riuso dei dati OCR per finalità ulteriori senza nuova base giuridica (art. 5(1)(b) GDPR).
@@ -346,6 +359,8 @@ Tutte le regole compliance sono **parametri versionati** mantenuti dal fornitore
 | **Locazioni 3+2 (l. 431/98)** | Preavviso 6 mesi a **fine triennio**; a **fine biennio** il contratto cessa → nuova stipula | Doppio trigger (ADR-24) | ⚠️ **consulente legale prima del go-live** |
 | **Conservazione documentale** | **10 anni** (AML e gestione); valore probatorio scansioni sotto CAD (D.Lgs 82/2005) | Retention nativa 10 anni; ⚠️ hash+timestamp da soli **non** danno valore probatorio → verifica conservativa | ⚠️ verifica legale/conservativa |
 
+**Riconciliazione mensile** (ADR-46, verbale C7): Task guidato mensile che confronta i Movimenti in stato `incassato` con l'estratto conto bancario / CSV del commercialista; le differenze sono **elencate una per una** e l'esito (quadra / differenze motivate) è registrato in AuditLog. Nessun collegamento bancario automatico in v1.
+
 **Disclaimer strutturale** (mostrato dove il sistema presenta adempimenti): *«Il gestionale segnala e ricorda adempimenti sulla base di parametri versionati; la verifica e l'esecuzione dell'adempimento restano responsabilità dell'agenzia e dei suoi consulenti. Adempimento non verificabile dal software.»*
 
 ---
@@ -353,5 +368,5 @@ Tutte le regole compliance sono **parametri versionati** mantenuti dal fornitore
 ## Chiusura
 
 - Decisioni normative: `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46). Questo documento le applica; in caso di conflitto, **vincono gli ADR**.
-- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9).
+- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9), bozza DPIA prima di S3 (§8.4). Il **vision LLM di fallback** (ADR-33) si sceglie all'esito del bake-off di S7 con mini-ADR — vincolo: **deve girare in locale** (verbale C7).
 - Ordine di build raccomandato dal Consiglio C1: **1)** backup attivo prima dei dati veri; **2)** CRUD + audit log senza AI; **3)** un template reale (incarico) → DOCX → PDF; **4)** solo dopo, JARVIS in lettura.

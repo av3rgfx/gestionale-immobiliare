@@ -19,7 +19,7 @@
 - **ADR-02 — Cuore deterministico.** I documenti legali escono da template versionati riempiti da codice. L'LLM è solo "bocca e orecchie" (capisce l'intento in italiano), **mai** autore di testo legale né di logica di calcolo.
 - **ADR-03 — Sequenza di build: prima il gestionale senza AI.** CRUD + template + PDF coprono già ~il 70% del valore. JARVIS arriva dopo, prima in sola lettura sul DB.
 - **ADR-04 — Auto-skill JARVIS = libreria curata, mai codice auto-generato.** JARVIS può *proporre* skill in formato Markdown; ogni skill è attivabile **solo** con approvazione umana esplicita e versionamento Git. Nessuna skill auto-attiva, nessun codice Python generato dall'LLM eseguito sul server.
-- **ADR-05 — Sviluppo cloud → produzione locale.** In sviluppo si usano API cloud (provider configurabile via `base_url`/`model`) **esclusivamente con dati sintetici o anonimizzati**; in produzione Ollama locale. La eval suite italiana identica viene rieseguita sul modello locale **dal secondo sprint**, non alla fine.
+- **ADR-05 — Sviluppo cloud → produzione locale.** In sviluppo si usano API cloud (provider configurabile via `base_url`/`model`) **esclusivamente con dati sintetici o anonimizzati**; in produzione Ollama locale. La eval suite italiana identica viene rieseguita sul modello locale **dal secondo sprint**, non alla fine. *(La sola clausola temporale della riesecuzione locale è sostituita da ADR-48 — consiglio C7: da S6, con Mac Mini disponibile prima.)*
 - **ADR-06 — Backup verificabile.** `sqlite3 .backup` schedulato (cron) + copia offsite cifrata + test di ripristino mensile + alert su backup fallito e disco pieno. Regola: *un backup mai ripristinato non è un backup*.
 - **ADR-07 — Human-in-the-loop con sostanza.** Ogni azione di scrittura rilevante mostra un **diff leggibile** dei dati chiave prima dell'approvazione (non un semplice pulsante "Approva"); conferma esplicita obbligatoria per email e documenti ufficiali.
 - **ADR-08 — Identità, ruoli, audit log.** Login con ruoli, permessi per ruolo, e registro **immutabile** di chi ha approvato cosa, quando, con quale versione di template e di modello. È obbligo GDPR e unica difesa dal "rubber-stamping".
@@ -47,11 +47,11 @@
 ### Decisioni adottate
 
 - **ADR-09 — Un file `REGOLE.md` nella root del repo, massimo 60 righe**, in quattro sezioni: (a) *Disciplina* — prima piano scritto, poi criterio di accettazione, poi codice, poi review; (b) *Semplicità* — 6-8 regole anti-overengineering (niente astrazioni premature, niente feature "per dopo"); (c) *Consiglio ridotto* — prima di ogni decisione architetturale elencare 3 modi in cui fallisce e 1 alternativa più semplice; (d) *Design* — solo la checklist impeccable, unica fonte design.
-- **ADR-10 — Doppia fonte.** Le regole vivono in due file nel repository: `REGOLE.md` (testo completo, fonte normativa) e `CLAUDE.md` (file corto che Code legge in automatico a ogni avvio e che ordina di rispettare `REGOLE.md`). Caricamento automatico + verifica leggibile con la frase rituale. *(Aggiornato luglio 2026: la forma originale prevedeva le istruzioni di progetto della sezione Progetti, abbandonata con l'ADR-13 nuovo.)*
+- **ADR-10 — Doppia fonte.** Le regole vivono in due file nel repository: `REGOLE.md` (testo completo, fonte normativa) e `CLAUDE.md` (file corto che Code legge in automatico a ogni avvio e che ordina di rispettare `REGOLE.md`). Caricamento automatico + verifica leggibile con la frase rituale. *(Aggiornato luglio 2026: la forma originale prevedeva le istruzioni di progetto della sezione Progetti, abbandonata con l'ADR-47, ex "ADR-13 nuovo".)*
 - **ADR-11 — Rituale d'apertura e chiusura di sessione.** Apertura fissa: *"Leggi REGOLE.md e riassumilo in 5 righe prima di toccare codice"* (verifica eseguibile anche da chi non legge codice). Chiusura: checklist di conformità leggibile. Una task per chat; se Claude deriva: *"Stop. Rileggi la sezione X e rifai"*.
 - **ADR-12 — Handoff obbligatorio tra sessioni.** Rituale di chiusura: riassunto (stato, decisioni prese, prossimo passo) + commit di checkpoint; la sessione successiva apre leggendo `REGOLE.md` e l'ultimo riassunto. Controllo di conformità e revisione versionata del file dopo 2 settimane.
-- ~~**ADR-13 — Claude Code: non ora.** L'attrito ucciderebbe il progetto; la struttura repo-first rende la migrazione gratuita. Rivalutare dopo 2 settimane, se le regole reggono.~~ **SOSTITUITO (luglio 2026).**
-- **ADR-13 (nuovo) — Ambiente di sviluppo: Code fin dalla sessione 1.** Si lavora nella sezione **Code** di Claude Desktop (Claude Code integrato: sub-agenti veri, lettura/scrittura diretta sui file, GitHub integrato) su tutti gli sprint; la sezione **Progetti non si usa**. Le regole vivono in `REGOLE.md` + `CLAUDE.md` nel repo (doppia fonte, vedi ADR-10). **Claude Design** si usa solo nei punti UI degli sprint **S2 e S6**: prototipo delle schermate → validazione con segretaria/agenti → handoff a Code per l'implementazione. Motivo del cambio: chiarito che Code dispone dei sub-agenti reali (consiglio llm-council nativo) e che l'attrito è minimo con le regole nel repo; Code elimina il copia-incolla manuale di comandi, che era il rischio operativo principale per un utente non sviluppatore.
+- ~~**ADR-13 — Claude Code: non ora.** L'attrito ucciderebbe il progetto; la struttura repo-first rende la migrazione gratuita. Rivalutare dopo 2 settimane, se le regole reggono.~~ **SOSTITUITO — la decisione sostitutiva è ADR-47 (consiglio C7, luglio 2026).**
+- *(Nota di registro: la decisione sostitutiva era stata inizialmente annotata qui come "ADR-13 (nuovo)", riusando il numero. Il consiglio C7 l'ha rinumerata in **ADR-47** per rispettare la convenzione del registro — nuovo numero, mai modifica retroattiva. Il testo integrale è in ADR-47, consiglio C7.)*
 
 ### Alternative scartate
 
@@ -73,7 +73,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 - **Paternità del file**: la bozza di `REGOLE.md` la scrive Claude nella prima sessione, l'utente la approva e la committa; ogni modifica successiva è una revisione versionata.
 - **Controllo di conformità a 1-2 settimane** da calendarizzare (chi lo fa, quando).
-- ~~**Rivalutazione Claude Code** alla scadenza delle 2 settimane.~~ **Chiuso**: si lavora in Code fin dalla sessione 1 (ADR-13 nuovo). Resta solo il controllo di conformità bisettimanale, che include la verifica che l'ambiente scelto regga.
+- ~~**Rivalutazione Claude Code** alla scadenza delle 2 settimane.~~ **Chiuso**: si lavora in Code fin dalla sessione 1 (ADR-47). Resta solo il controllo di conformità bisettimanale, che include la verifica che l'ambiente scelto regga.
 
 ---
 
@@ -206,6 +206,31 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ---
 
+## Consiglio C7 — Revisione della progettazione prima dello sviluppo (Sprint 0)
+
+**Posta in gioco:** chiudere i punti aperti emersi dalla verifica di coerenza incrociata tra 03/04/05 prima di scrivere codice, e sanare le anomalie del registro. Verbale integrale: `08_VERBALI_CONSIGLI/C7_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-47 — Ambiente di sviluppo: Code fin dalla sessione 1** *(sostituisce ADR-13; è l'ex "ADR-13 nuovo", rinumerato)*. Si lavora nella sezione **Code** di Claude Desktop (Claude Code integrato: sub-agenti veri, lettura/scrittura diretta sui file, GitHub integrato) su tutti gli sprint; la sezione **Progetti non si usa**. Le regole vivono in `REGOLE.md` + `CLAUDE.md` nel repo (doppia fonte, vedi ADR-10). **Claude Design** si usa solo nei punti UI degli sprint **S2 e S6**: prototipo delle schermate → validazione con segretaria/agenti → handoff a Code per l'implementazione. Motivo del cambio: chiarito che Code dispone dei sub-agenti reali (consiglio llm-council nativo) e che l'attrito è minimo con le regole nel repo; Code elimina il copia-incolla manuale di comandi, che era il rischio operativo principale per un utente non sviluppatore.
+- **ADR-48 — Eval sul modello locale: da S6, con Mac Mini disponibile prima** *(sostituisce la sola clausola temporale di ADR-05)*. La eval suite gira su cloud da S0. Il **Mac Mini M4 va acquistato e configurato con Ollama prima dell'inizio di S6** (vincolo esplicito: senza Mac disponibile, S6 non si chiude). La **prima esecuzione della eval sul modello locale è criterio di done di S6**, ripetuta in S7 e S8. Criterio di kill: se l'eval locale fallisce, S7 non parte e **si cambia modello, non architettura**. Beneficio collaterale: il Mac M4 da S6 fornisce anche l'hardware Apple Silicon per il bake-off OCR di S7 (il MacBook 2019 Intel non lo è).
+- **ADR-49 — Retention differenziata delle immagini dei documenti** *(precisa il rapporto tra ADR-38 e ADR-46)*. Le immagini acquisite a soli fini di estrazione dati si cancellano dopo l'estrazione (ADR-38); le copie dei documenti richieste dall'adeguata verifica antiriciclaggio si conservano **10 anni, cifrate e ad accesso loggato** (ADR-46). La pipeline OCR di S7 nasce con questa distinzione incorporata. ⚠️ Da confermare con il consulente AML (verifica già prevista in S5).
+
+### Alternative scartate
+
+- **"Interpretare" ADR-05 senza correggerlo** (eval su cloud = adempimento) — lascerebbe la scoperta del modello locale a S8, il rischio che ADR-05 voleva evitare.
+- **Lasciare i presidi sui dati reali in S8** — non un rischio ma una non-conformità in corso d'opera; la chiusura costa quasi zero (FileVault + log accessi).
+- **Blocco duro "nessuna pratica senza APE"** — produrrebbe APE fittizie o lavoro fuori sistema; sostituito da compito bloccante visibile + blocco della generazione documenti (applicazione di ADR-21, vedi verbale C7 P4).
+- **Sola nota di anomalia su ADR-13 riusato** — un registro che viola la propria convenzione perde autorevolezza dove serve di più.
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **Bozza DPIA (art. 35) prima di S3** (aggiornamento prima di S7, chiusura formale in S8): l'art. 35 la richiede *prima* del trattamento.
+- ⚠️ **Conferma consulente AML su ADR-49** (retention differenziata) durante S5.
+- **Acquisto Mac Mini M4** da calendarizzare in tempo per l'inizio di S6 (ADR-48).
+
+---
+
 ## Tabella riassuntiva — Richiesta originale del cliente → decisione finale
 
 | # | Richiesta originale del cliente | Decisione finale | ADR |
@@ -220,7 +245,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | 8 | **Modelli "brevettati AdE"** | Dicitura corretta: **deposito formulari presso la Camera di Commercio** (non brevetto, non AdE), con **promemoria di ri-deposito a ogni modifica** dei modelli e tracciamento versione depositata (hash, stato, lock). | ADR-18, ADR-44 |
 | 9 | **AML 5000/1000** | **5.000€** = alert **bloccante** sul contante (limite legale all'uso del contante, non soglia AML); **1.000€** = **policy interna configurabile**, etichettata «policy interna». Adeguata verifica **all'incarico, senza soglia**. Da validare col consulente AML. | ADR-44 |
 | 10 | **Privacy auto-compilata** | Nessuna raccolta automatica del consenso: flusso **genera → stampa → firma → scansiona**; la scansione è **record immutabile di consenso** (soggetto, versione modulo, data, hash); cambio informativa → consensi scaduti e **ri-firma obbligatoria**. | ADR-20 |
-| 11 | **API cloud in sviluppo** | Sì in sviluppo con **soli dati sintetici/anonimizzati** (provider configurabile via `base_url`/`model`); produzione su **Ollama locale**; eval suite identica rieseguita sul modello locale **dal secondo sprint**. | ADR-05 |
+| 11 | **API cloud in sviluppo** | Sì in sviluppo con **soli dati sintetici/anonimizzati** (provider configurabile via `base_url`/`model`); produzione su **Ollama locale**; eval suite rieseguita sul modello locale **da S6** (prima esecuzione = criterio di done di S6). | ADR-05, ADR-48 |
 | 12 | **Auto-skill JARVIS** | **Libreria curata**: JARVIS propone skill in Markdown, attivabili **solo con approvazione umana + versioning Git**; **mai** codice auto-generato eseguito sul server. | ADR-04 |
 
 ---
@@ -235,5 +260,6 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | ADR-23 … ADR-30 | C4 | Canale email, doppio trigger, ciclo chiuso, routing scenari |
 | ADR-31 … ADR-38 | C5 | OCR deterministic-first, MRZ, matrice adempimenti, GDPR |
 | ADR-39 … ADR-46 | C6 | Movimenti automatici, ruolo Proprietario, diciture compliance, retention |
+| ADR-47 … ADR-49 | C7 | Ambiente di sviluppo (Code), eval locale da S6 con Mac Mini, retention differenziata immagini |
 
 **Prossima modifica a questo registro:** solo tramite nuovo ADR (nuovo numero, mai modifica retroattiva) con motivazione e, se richiesto dai Punti aperti, esito della verifica esterna allegato.
