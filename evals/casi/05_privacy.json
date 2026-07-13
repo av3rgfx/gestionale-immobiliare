@@ -1,0 +1,6 @@
+{
+  "id": "privacy",
+  "domanda": "Nel nostro flusso privacy il cliente firma l'informativa su carta. Qual e' il passo immediatamente successivo tra questi tre: archiviare, scansionare, spedire? Rispondi con una sola parola.",
+  "parole_attese": ["scansion"],
+  "nota": "Flusso genera -> stampa -> firma -> scansiona (ADR-20). La parola attesa e' un pezzo comune a scansionare/scansione."
+}

@@ -1,0 +1,5 @@
+# Dipendenze del progetto — Sprint 0.
+# Regola (REGOLE.md §2): nuove dipendenze solo con il permesso dell'utente.
+# openai = SDK usato come client generico verso provider compatibili OpenAI
+# (cloud in sviluppo, Ollama locale in produzione) — ADR-05.
+openai>=1.50,<3

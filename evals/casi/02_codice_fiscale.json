@@ -1,0 +1,6 @@
+{
+  "id": "codice_fiscale",
+  "domanda": "Quanti caratteri ha in totale il codice fiscale italiano di una persona fisica? Rispondi solo con il numero.",
+  "parole_attese": ["16"],
+  "nota": "Conoscenza di base del dominio: il codice fiscale e' centrale per anagrafiche e cross-check (ADR-35)."
+}

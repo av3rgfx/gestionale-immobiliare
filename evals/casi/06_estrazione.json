@@ -1,0 +1,6 @@
+{
+  "id": "estrazione",
+  "domanda": "Estrai dal testo seguente il cognome e la citta', rispondendo SOLO in JSON con le chiavi \"cognome\" e \"citta\". Testo: \"Il sig. Mario Bianchi vive a Verona.\" (dati inventati)",
+  "parole_attese": ["Bianchi", "Verona"],
+  "nota": "Capacita' di estrazione strutturata su dati sintetici: servira' per le bozze proposte da JARVIS."
+}

@@ -1,0 +1,6 @@
+{
+  "id": "locazione_3_piu_2",
+  "domanda": "In un contratto di locazione abitativa 3+2 a canone concordato, dopo i primi tre anni di quanti anni e' il rinnovo? Rispondi solo con il numero.",
+  "parole_attese": ["2", "due"],
+  "nota": "Dominio locazioni: alla base del modulo scadenze (ADR-24)."
+}

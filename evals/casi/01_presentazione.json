@@ -1,0 +1,6 @@
+{
+  "id": "presentazione",
+  "domanda": "Presentati in una sola frase, in italiano: chi sei e cosa puoi fare per un'agenzia immobiliare?",
+  "parole_attese": ["agenzia", "immobiliare"],
+  "nota": "Verifica che il modello risponda in italiano e capisca il contesto del progetto."
+}
