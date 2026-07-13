@@ -13,5 +13,7 @@ Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM
 | `C7_verdetto.md` | Revisione della progettazione prima dello sviluppo (Sprint 0): ADR-47/48/49 |
 | `R1_skill_brief.md` | Verifica fattuale delle skill citate (con fonti) |
 | `R2_stack_brief.md` | Verifica fattuale stack tecnico e normativa (con fonti) |
+| `R3_memoria_brief.md` | Verifica fattuale memoria personale/RAG locale per JARVIS (con fonti) |
+| `R4_automazioni_brief.md` | Verifica fattuale motori di automazione e pattern sicuri (con fonti) |
 
 Il registro decisioni operativo è `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46): in caso di conflitto tra questi verbali e gli ADR, **vincono gli ADR**.
