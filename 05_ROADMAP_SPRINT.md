@@ -32,7 +32,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 | Verifica | Da fare entro | Chi |
 |---|---|---|
-| Test su 5–10 modelli reali depositati in Camera di Commercio (conversione, font, dry-run, confronto stampa) | durante S2 | agenzia + Claude |
+| Test su 5–10 modelli reali depositati in Camera di Commercio (conversione, font, dry-run, confronto stampa; **+ C10:** recall/precision del parser campi vuoti, invariante di non-alterazione, usabilità wizard con la segretaria) | durante S2 | agenzia + Claude |
 | Validazione legale delle due scadenze l. 431/98 (doppio trigger) | durante S4, prima del go-live del modulo | consulente legale |
 | Validazione legale dei template da un professionista + nominare un responsabile aggiornamento normativo | durante S2 | consulente legale |
 | Verifica soglie AML con il consulente antiriciclaggio dell'agenzia | durante S5 | consulente AML |
@@ -109,13 +109,17 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - **Prototipo in Claude Design (prima del codice UI):** le schermate del modulo documentale (lista template, ciclo di vita, anteprima PDF, generazione pacchetto) vengono prima disegnate in Claude Design seguendo la checklist Design di `REGOLE.md`, fatte provare a segretaria/agenti, corrette col loro feedback, e solo poi implementate in Code.
 - Ciclo di vita template: bozza → depositata → ritirata; hash SHA-256; lock sulle depositate; approvazione per ruolo.
 - Import `.doc`/`.odt` → conversione una tantum in `.docx` → nasce **bozza da approvare**.
+- **Templatizzazione assistita all'import (Consiglio C10, ADR-67):** uno **script deterministico** rileva i campi vuoti del modulo (puntini, underscore, celle vuote, campi modulo Word); un **wizard** ti fa assegnare a ciascuno un tag scelto dal **Dizionario dei Campi** (menu in italiano, con **memoria delle etichette**); i tag li inserisce **il codice** su una copia — **mai l'LLM**.
+- **Dizionario dei Campi (ADR-64/65/66):** vocabolario canonico a oggetti (`{{ locatore.nome }}`), campi atomici (nome/cognome, indirizzo scomposto), ricomposizioni via filtri (importo in lettere dal numero); ogni tag agganciato a un dato reale (**tag orfani rifiutati**). Governance con steward e alias.
+- **Invariante di non-alterazione (ADR-68):** al salvataggio, se il **testo fisso** del modulo è cambiato rispetto all'originale il sistema **rifiuta**; se differisce dal modello depositato avvisa «**richiede ri-deposito in Camera di Commercio**». Audit trail della templatizzazione + golden test in CI.
+- **In S2 nessun LLM:** tutto deterministico + conferma umana. L'aiuto dell'LLM (sola pre-selezione del tag) è **condizionale e arriva da S6** (ADR-69), solo se lo script non risolve già ~85-90% dei campi. **Nessun modulo reale dell'agenzia va sul cloud** (ADR-70).
 - Dry-run al salvataggio: segnaposti irrisolti e font mancanti segnalati in italiano semplice, con dati finti.
 - Rendering on-demand dai dati canonici (**nessuna cascata**); generazione bloccata con elenco campi mancanti.
 - Tasto "Genera pacchetto pratica" con moduli condizionali (es. mutuo solo se previsto).
 - Anteprima = PDF generato e archiviato alla creazione dell'istanza (PDF.js); correzione dato → rigenerazione esplicita come nuova istanza; pratiche in corso legate alla versione di nascita.
-- Test di validazione sui 5–10 modelli reali depositati in CdC: conversione PDF, controllo font, confronto stampa/anteprima.
+- Test di validazione sui 5–10 modelli reali depositati in CdC: conversione PDF, controllo font, confronto stampa/anteprima; **e (Consiglio C10)** recall/precision del parser dei campi vuoti, quota di pre-match deterministico etichetta→tag, esito dell'invariante di non-alterazione.
 
-**Cosa NON entra:** firme digitali/OTP (Fase 2); conservazione a norma con valore probatorio (verifica legale esterna); PDF come template (mai).
+**Cosa NON entra:** firme digitali/OTP (Fase 2); conservazione a norma con valore probatorio (verifica legale esterna); PDF come template (mai); **LLM che scrive nel file** (mai: solo classificazione del tag, e solo da S6 — ADR-69); **invio di moduli reali dell'agenzia al cloud** (ADR-70).
 
 **Criteri di done:**
 - [ ] Carichi un modello Word reale dell'agenzia, lo approvi: passa a "depositata" e vedi il suo hash; provi a modificarlo: il sistema blocca.
@@ -123,8 +127,11 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Togli un dato obbligatorio dalla pratica e rigeneri: il sistema blocca ed elenca i campi mancanti.
 - [ ] "Genera pacchetto pratica" produce tutti i documenti previsti, e quelli condizionali solo se servono.
 - [ ] Modifichi un template: nasce una nuova versione; una pratica vecchia continua a usare la sua versione originale.
+- [ ] Importi un modulo grezzo: il wizard **evidenzia i campi** da compilare; assegni i tag dal menu e ottieni un template **bozza**.
+- [ ] Provi a salvare un template in cui è cambiata una parola del **testo fisso**: il sistema **rifiuta** (invariante di non-alterazione).
+- [ ] Assegni un tag non presente nel Dizionario: viene **bloccato** al salvataggio con messaggio chiaro.
 
-**Rischi principali:** fedeltà dei font (mitigato: Liberation + test sui modelli reali **prima** di scrivere altro codice; se fallisce, si correggono i template, non il motore); artefatti della conversione `.doc`/`.odt`; deposito CdC da rinnovare a ogni modifica (il promemoria automatico arriva in S5).
+**Rischi principali:** fedeltà dei font (mitigato: Liberation + test sui modelli reali **prima** di scrivere altro codice; se fallisce, si correggono i template, non il motore); artefatti della conversione `.doc`/`.odt`; deposito CdC da rinnovare a ogni modifica (il promemoria automatico arriva in S5); **campi vuoti non rilevati** dal parser (un campo mancato = riga bianca invisibile ai controlli — mitigato: parser ad alto recall, misura al gate, contatore di copertura con motivo).
 
 ---
 
@@ -227,6 +234,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - HITL con sostanza: ogni scrittura proposta mostra un **diff leggibile** dei dati chiave; conferma esplicita; tutto in audit log.
 - Libreria skill Markdown: JARVIS può **proporre** skill; attivazione solo con approvazione umana + commit Git; nessuna skill auto-attiva; **mai codice generato**.
 - Eval suite italiana eseguita su cloud **e sul modello locale** (prima esecuzione locale = criterio di done — ADR-48); report archiviati.
+- **(Condizionale — ADR-69)** LLM-assist alla **templatizzazione dei moduli** (pre-selezione del tag dal Dizionario, ADR-64): si costruisce **solo se** i log di S2 mostrano che lo script deterministico risolve < ~85-90% dei campi; l'LLM **classifica su vocabolario chiuso**, non scrive mai nel file.
 
 **Cosa NON entra:** scrittura libera di JARVIS sul DB (solo tramite funzioni deterministiche approvate); skill auto-attive; nuove capacità oltre i tool approvati (Fase 2: estensione scrittura).
 

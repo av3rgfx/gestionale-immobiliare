@@ -3,7 +3,7 @@
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale.
 **Ambiente di produzione:** Mac Mini M4, rete LAN dell'agenzia (2-5 utenti).
 **Ambiente di sviluppo:** sessioni nella sezione **Code** di Claude Desktop (ADR-47), repo GitHub, codice verso API cloud (dati sintetici) e poi modello locale.
-**Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-63).
+**Uso di questo documento:** riferimento citato dai prompt di sprint. Ogni sprint deve dichiarare a quali sezioni si attiene; le decisioni normative sono in `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-70).
 
 ---
 
@@ -31,6 +31,7 @@ Stack unico, tecnologie mature ("noiose") e installabili via `pip`/`brew` (ADR-0
 | Backend | **FastAPI** (Python) | API REST, logica applicativa, job schedulati |
 | Database | **SQLite in modalità WAL** | File unico, regge 2-5 utenti LAN; backup via `sqlite3 .backup` |
 | Template documenti | **docxtpl** (Jinja2 dentro DOCX) | Riempimento deterministico dei modelli |
+| Templatizzazione moduli | **lxml** (OOXML) + **odfdo** (ODT) + python-docx | Rilevamento deterministico dei campi vuoti e inserimento placeholder su copia (ADR-67) |
 | Conversione | **LibreOffice headless** (`soffice --headless --convert-to pdf`) | DOCX → PDF identico alla stampa |
 | Font | **Liberation** (metricamente compatibili con Calibri/Cambria) | Fedeltà tipografica anteprima/stampa (ADR-16) |
 | Anteprima | **PDF.js** | Visualizzazione del PDF archiviato nel browser |
@@ -170,6 +171,14 @@ Regola dichiarativa del Proprietario (ADR-53).
 - Stato (`disattivata` / `attiva` / `in_pausa` / `autosospesa`), limite giornaliero anti-tempesta, contatori e data ultima esecuzione.
 - Origine: creata da JARVIS su richiesta o «di sistema» (RLI ADR-43, scadenze ADR-24, esposte nella stessa UI, mai duplicate).
 
+### 3.15 CampoCanonico (Dizionario dei tag) *(da S2 — ADR-64/65/66)*
+Vocabolario controllato dei segnaposti usati nei template, generato per **flattening deterministico** dal modello dati canonico e ancorato al lessico **RLI**.
+- **nome_canonico** atomico (`nome`, `cognome`, `via`, `civico`, `cap`, `comune`, `provincia`, `rendita_catastale`, `foglio`, `particella`, `subalterno`, `canone`…) e **ruolo/entità** applicabile (Soggetto con ruolo locatore/conduttore/garante; Immobile; ContrattoLocazione) — nel template si usa il **binding a oggetti** `{{ locatore.nome }}`, mai il prefisso fuso.
+- **binding**: campo del modello dati a cui si aggancia **oppure** derivazione dichiarata (filtro Python approvato: `nome_completo`, `importo_in_lettere`, `indirizzo_su_una_riga`). **Tag orfani vietati** (ADR-66).
+- **stato** (`proposto`/`approvato`/`deprecato`), **alias** di migrazione (deprecazione mai per cancellazione), **changelog** datato, **steward** approvante (ADR-64), versionato in Git.
+- **obbligatorietà per-template** (`obbligatorio`/`opzionale`/`condizionale`) usata da ADR-21 per bloccare sui soli campi richiesti da quel modulo.
+- Il **report di templatizzazione** (candidati, mappa campo→tag, diff dell'invariante, approvatore) è agganciato alla versione Template (ADR-18/ADR-68).
+
 ---
 
 ## 4. Architettura agente JARVIS
@@ -259,7 +268,47 @@ Regole operative:
 8. **Versioni depositate**: hash SHA-256, stato bozza/depositata/ritirata, lock, approvazione con ruoli; cambio modello → nuova versione + **ri-deposito in Camera di Commercio**; pratiche in corso ancorate alla versione di nascita (ADR-18, ADR-44).
 9. **L'informativa privacy è un template come gli altri**: il modulo dell'informativa vive in questa stessa pipeline come Template versionato; la `versione del modulo` del RecordConsenso è il suo `template_version_id`, e l'allegato automatico alle pratiche usa il meccanismo del pacchetto (ADR-20, ADR-22). Nessun motore parallelo (verbale C7).
 
-⚠️ **Gate pre-codice**: validazione su 5-10 modelli reali depositati (conversione PDF, font, dry-run, confronto stampa/anteprima). Se fallisce, si correggono i template, non il motore.
+⚠️ **Gate pre-codice**: validazione su 5-10 modelli reali depositati (conversione PDF, font, dry-run, confronto stampa/anteprima; **dal Consiglio C10**: recall del parser dei campi vuoti, precision, quota di pre-match deterministico, esito dell'invariante di non-alterazione). Se fallisce, si correggono i template, non il motore.
+
+### 5.1 Templatizzazione assistita all'import (Consiglio C10)
+Trasforma un modulo grezzo importato in un template `docxtpl`, **senza che l'LLM tocchi il file** (ADR-02).
+
+```
+Modulo importato (.doc/.odt -> .docx una tantum, ADR-17)
+   │
+   ▼
+1) RILEVAMENTO campi vuoti — DETERMINISTICO (ADR-67)
+   lxml su document.xml: content control (w:sdt/showingPlcHdr), FORMTEXT/w:ffData,
+   MERGEFIELD, tab leader, celle vuote (gridSpan/vMerge); regex su TESTO AGGREGATO
+   per underscore/puntini; odfdo per ODT.  [recall = requisito di sicurezza]
+   │
+   ▼
+2) WIZARD di marcatura — l'umano assegna i tag dal DIZIONARIO (ADR-64/65/66)
+   candidati evidenziati, menu canonico in italiano (ruolo-binding, atomico),
+   semaforo mappati/da-rivedere/ignorati (contatore di copertura con motivo),
+   MEMORIA delle etichette (etichetta -> tag confermato, zero LLM),
+   anteprima PDF con dati finti riconoscibili.
+   [da S6, opzionale: l'LLM PRE-SELEZIONA il menu — ADR-69 — mai scrive]
+   │
+   ▼
+3) INSERIMENTO placeholder — CODICE deterministico su COPIA, tag in singolo run
+   │
+   ▼
+4) INVARIANTE di non-alterazione BLOCCANTE (ADR-68)
+   testo fisso originale ≡ testo fisso template (diff mascherato char-per-char);
+   diff non vuoto -> SALVATAGGIO RIFIUTATO.  Se il testo fisso ≠ modello depositato
+   -> flag «richiede ri-deposito CCIAA».
+   │
+   ▼
+5) Template BOZZA (ADR-17) -> dry-run con LINT del dizionario (ADR-16: tag orfani/fuori
+   catalogo = errore) -> approvazione/deposito con hash e lock (ADR-18);
+   audit trail di templatizzazione + golden test in CI per ogni versione.
+```
+
+- **Dizionario** (§3.15, ADR-64/65/66): vocabolario canonico a oggetti, **ruolo come binding** (`{{ locatore.nome }}`), attributi **atomici**, ricomposizioni solo via **filtri deterministici** (`importo_in_lettere` derivato dal numero, mai secondo campo), governance con steward e alias.
+- **LLM** (ADR-69, **da S6, condizionale**): solo **classificatore su vocabolario chiuso** che pre-seleziona il menu; riceve il singolo campo, mai il file; non scrive su file né dizionario; si costruisce solo se il matching deterministico di S2 resta sotto ~85-90%.
+- **Cloud** (ADR-70): **nessun file dell'agenzia** (nemmeno i moduli "vuoti") lascia il Mac; in sviluppo solo moduli sintetici ricreati.
+- **Auto-compilazione**: una volta taggato, il documento si genera con **docxtpl** riempiendo i placeholder dai **dati canonici** (ADR-14); campi mancanti → **generazione bloccata** (ADR-21); l'assistente AI può proporre la generazione del **pacchetto pratica** con **HITL + diff** (ADR-22, ADR-07).
 
 ---
 
@@ -431,6 +480,6 @@ Glue custom **dentro** FastAPI (endpoint WebSocket), **nessun framework** né me
 
 ## Chiusura
 
-- Decisioni normative: `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-63). Questo documento le applica; in caso di conflitto, **vincono gli ADR**.
-- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9), bozza DPIA prima di S3 (§8.4); **e, dal Consiglio C9 (§10):** DPA Tailscale + registro trattamenti, DPIA leggera voce+remoto+AI, licenza voce TTS, retention trascrizioni, parere art. 173 CdS. Il **vision LLM di fallback** (ADR-33) si sceglie all'esito del bake-off di S7 con mini-ADR — vincolo: **deve girare in locale** (verbale C7).
+- Decisioni normative: `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-70). Questo documento le applica; in caso di conflitto, **vincono gli ADR**.
+- Verifiche esterne aperte (bloccanti per i moduli indicati): modello LLM (§4.1), modelli reali depositati (§5), doppio trigger l. 431/98 (§6), bake-off OCR 50+ documenti (§7), consulente AML e conservazione CAD (§9), bozza DPIA prima di S3 (§8.4); **dal Consiglio C9 (§10):** DPA Tailscale + registro trattamenti, DPIA leggera voce+remoto+AI, licenza voce TTS, retention trascrizioni, parere art. 173 CdS; **dal Consiglio C10 (§5.1):** gate S2 esteso (recall/precision del parser, invariante di non-alterazione) e usabilità del wizard con la segretaria. Il **vision LLM di fallback** (ADR-33) si sceglie all'esito del bake-off di S7 con mini-ADR — vincolo: **deve girare in locale** (verbale C7).
 - Ordine di build raccomandato dal Consiglio C1: **1)** backup attivo prima dei dati veri; **2)** CRUD + audit log senza AI; **3)** un template reale (incarico) → DOCX → PDF; **4)** solo dopo, JARVIS in lettura.

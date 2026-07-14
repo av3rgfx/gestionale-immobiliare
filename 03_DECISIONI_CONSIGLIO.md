@@ -303,6 +303,40 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ---
 
+## Consiglio C10 — Auto-tagging dei moduli importati e Dizionario dei tag
+
+**Posta in gioco:** trasformare in modo affidabile un modulo importato (doc/docx/odt) in un template con segnaposti e alimentare l'auto-compilazione dai dati canonici, **senza che l'LLM alteri il testo legale** (ADR-02). Evidenze: brief `R6_autocompilazione_brief.md`. Verbale integrale: `08_VERBALI_CONSIGLI/C10_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-64 — Dizionario dei Campi (vocabolario canonico).** Il dizionario è un *data dictionary* versionato in Git, generato come **flattening deterministico del modello dati canonico** (Soggetto, Immobile, ContrattoLocazione…) e ancorato al lessico **RLI** dell'Agenzia delle Entrate (foglio, particella, subalterno, rendita, tipologia contratto). Voci con stato **proposto/approvato/deprecato**, **steward umano** (lo stesso ruolo che approva i template, ADR-18), changelog datato, **deprecazione con alias di migrazione, mai cancellazione** (i template depositati che usano il vecchio nome restano validi). **Nessun placeholder può esistere fuori dal dizionario approvato.**
+- **ADR-65 — Ruolo come binding, granularità atomica.** Nei template il **ruolo** (locatore, conduttore, garante…) è un **binding a oggetti** — `{{ locatore.nome }}`, `{{ conduttore.cognome }}` — **mai** un prefisso fuso nel nome del tag (`nome_locatore`): così il drift `{{nome_locatore}}`/`{{locatore_nome}}` è **irrappresentabile per costruzione**. Attributi **atomici** (nome/cognome; indirizzo scomposto in via/civico/cap/comune/provincia; date tipizzate; importi numerici). Le ricomposizioni (nome completo, **importo in lettere**, indirizzo su una riga) sono **esclusivamente filtri Python deterministici** approvati e testati, **mai** campi duplicati e **mai** output dell'LLM. Le "voci composte" nei menu UI sono solo scorciatoie che si **espandono in tag atomici visibili nel diff** (mai tag compositi persistiti).
+- **ADR-66 — Aggancio obbligatorio tag→dato.** Ogni voce del dizionario ha **obbligatoriamente** un binding a un campo del modello dati canonico o una derivazione dichiarata (filtro/funzione); i **tag orfani sono rifiutati al salvataggio** del template (lint nel dry-run ADR-16), non a valle. Metadato di **obbligatorietà per-tag-per-template** (obbligatorio/opzionale/condizionale) per rendere preciso il blocco ADR-21 (blocca sui campi richiesti da *quel* modulo, non su tutto il dizionario).
+- **ADR-67 — Templatizzazione assistita deterministica.** Il **rilevamento** dei campi vuoti è **deterministico** (lxml su `document.xml`: content control `w:sdt/showingPlcHdr`, legacy `FORMTEXT`/`w:ffData`, `MERGEFIELD`, tab leader, celle vuote gestendo `gridSpan`/`vMerge`; regex sul **testo di paragrafo aggregato** per underscore/puntini; `odfdo` per ODT). L'**inserimento** dei placeholder è **esclusivamente codice deterministico su una COPIA**, tag in **singolo run**. Il wizard impone un **contatore di copertura con motivo dichiarato** per ogni candidato scartato (i falsi negativi non muoiono in silenzio). Il template taggato **nasce BOZZA** (ADR-17). *Insight del consiglio: un campo vuoto non rilevato è invisibile per sempre (passa ADR-16/21 come testo normale) → il recall del parser è un requisito di **sicurezza**, non delegabile all'LLM.*
+- **ADR-68 — Invariante di non-alterazione (bloccante).** Al salvataggio di un template templatizzato, il **testo estratto dall'originale coi vuoti mascherati** deve essere **identico carattere-per-carattere** al testo del template coi placeholder mascherati; **diff non vuoto = salvataggio RIFIUTATO** (non warning). Render di prova con dati fittizi + verifica di integrità del DOCX come controllo secondario. Se il **testo fisso differisce dal modello depositato** → flag automatico **«richiede ri-deposito CCIAA»**. **Audit trail di templatizzazione** (originale+hash, candidati con evidenza XML, mappa campo→tag, report diff, approvatore) agganciato alla versione template (ADR-18); **golden test in CI** per ogni versione.
+- **ADR-69 — LLM solo classificatore su vocabolario chiuso.** L'LLM (locale, **da S6**) riceve **solo il candidato** con etichetta e contesto locale, **MAI il file**; emette **solo un tag dall'enum** del dizionario approvato (constrained decoding, *reasoning-then-constrain*, opzione obbligatoria `NESSUNA_CORRISPONDENZA`) **oppure** una proposta di tag nuovo; **ogni proposta richiede approvazione umana**; l'LLM **non ha mai accesso in scrittura** a file o dizionario. Si costruisce **solo** se il matching deterministico etichetta→tag di S2 resta sotto ~85-90% (gate S6).
+- **ADR-70 — Divieto cloud assoluto per i file dell'agenzia.** **Nessun file** proveniente dall'agenzia (inclusi i moduli "vuoti": metadati autore/revisioni/track-changes, residui di compilazioni, know-how dei modelli depositati) lascia il Mac; per sviluppo e test su cloud si usano **esclusivamente moduli sintetici ricreati ex novo**. **Nessuna eccezione** né procedura di sanificazione caso-per-caso.
+
+### Alternative scartate
+
+- **LLM che riscrive il DOCX / inserisce i tag nel file** — rompe i run del documento e può alterare in silenzio il testo legale (ADR-02); l'LLM al più classifica, il file lo scrive il codice.
+- **LLM che salva da solo nuovi tag nel dizionario** — drift; l'LLM propone, un umano approva.
+- **Lista piatta di stringhe di tag** (formulazione iniziale dell'utente) — sposta il drift un livello più su invece di eliminarlo; il binding a oggetti lo rende irrisolvibile alla radice a parità di sforzo.
+- **Rilevamento dei campi vuoti puro-LLM** — non deterministico/riproducibile e cieco proprio dove il fallimento è fatale (campo non rilevato = riga bianca invisibile ad ADR-16/21).
+- **Importo in lettere come secondo campo memorizzato** — è logica di calcolo (ADR-02) e due campi = due possibilità di discordanza; si deriva con filtro deterministico dal valore numerico.
+- **Sanificazione caso-per-caso dei moduli reali verso il cloud** — reintroduce il giudizio caso-per-caso che il divieto assoluto elimina («nel dubbio, no»).
+- **Add-in dentro Word (stile Afterpattern) / docassemble come componente** — fragili o fuori dal gestionale; si riusa solo il *pattern*, non il prodotto.
+- **Tagging manuale in Word senza wizard** — un non tecnico produce run spezzati e template rotti, e si perde l'audit trail.
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **Gate pre-codice S2 esteso** sui 5-10 modelli reali depositati: oltre a conversione/font/dry-run/confronto stampa-anteprima, misurare **recall del parser** (requisito di sicurezza), **precision** (falsi candidati tollerabili per la segretaria), **quota di pre-match deterministico** etichetta→tag, ed **esito dell'invariante di non-alterazione** su tutti.
+- **Test di usabilità con la segretaria** sul wizard S2: da modulo grezzo a template bozza **senza assistenza tecnica** (tempo e frizioni a verbale).
+- **Gate S6 condizionale**: costruire l'LLM-assist solo se i log di S2 mostrano risoluzione deterministica < ~85-90%; validare il classificatore 27B su un set etichettato interno (**niente benchmark pubblici** per legale italiano), con conferma umana sempre.
+- **Allineamento del dizionario alle release RLI** (Agenzia delle Entrate) via governance ADR-64.
+
+---
+
 ## Tabella riassuntiva — Richiesta originale del cliente → decisione finale
 
 | # | Richiesta originale del cliente | Decisione finale | ADR |
@@ -322,6 +356,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | 13 | **Versione mobile** | **PWA responsive** sulla stessa app FastAPI (niente app nativa), usata dal telefono via **Tailscale**; sprint dedicato **pre-go-live**. | ADR-55, ADR-56, ADR-57 |
 | 14 | **JARVIS "come Iron Man" (chiamata vocale)** | **Modalità Chiamata, canale di primo piano subito dopo S6**: a voce solo Q&A read-only + dettatura di proposte in coda; **scritture mai a voce** (HITL a video); stack voce **tutto locale** (whisper.cpp + Ollama 27B + TTS italiano), on-demand. | ADR-59, ADR-60, ADR-61 |
 | 15 | **Tool GitHub proposti** | **Nessuno adottato**: databasement, bklit-ui, personaplex e anime.js (v1) scartati; livekit/agents solo come **riferimento di pattern**; UI voce **nativa**. | ADR-63 |
+| 16 | **Auto-compilazione moduli / Archivio Moduli** | **Templatizzazione deterministica** all'import (uno script rileva i campi vuoti e inserisce i tag su una copia, con controllo **bloccante** che il testo legale resti intatto) + **dizionario canonico** a oggetti (ruolo-binding, campi atomici); l'LLM (da S6) al più **suggerisce** il tag, l'umano conferma; poi docxtpl riempie dai dati (ADR-14). | ADR-64 … ADR-70 |
 
 ---
 
@@ -338,5 +373,6 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | ADR-47 … ADR-49 | C7 | Ambiente di sviluppo (Code), eval locale da S6 con Mac Mini, retention differenziata immagini |
 | ADR-50 … ADR-54 | C8 | JARVIS solo Proprietario, memoria «Cose da ricordare», Procedure, automazioni interne, trigger email |
 | ADR-55 … ADR-63 | C9 | Mobile PWA, deroga/hardening Tailscale, runbook furto, modalità Chiamata JARVIS, voce = input non fidato, stack voce locale, notifiche, UI voce nativa |
+| ADR-64 … ADR-70 | C10 | Dizionario canonico dei tag, ruolo-binding e granularità atomica, aggancio obbligatorio tag→dato, templatizzazione deterministica, invariante di non-alterazione, LLM solo classificatore, divieto cloud sui file dell'agenzia |
 
 **Prossima modifica a questo registro:** solo tramite nuovo ADR (nuovo numero, mai modifica retroattiva) con motivazione e, se richiesto dai Punti aperti, esito della verifica esterna allegato.
