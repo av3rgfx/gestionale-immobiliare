@@ -3,7 +3,7 @@
 **Progetto:** Gestionale Immobiliare + JARVIS — webapp locale per piccola agenzia immobiliare italiana con agente AI locale (Mac Mini M4 in produzione, sviluppo su Claude Desktop, repo GitHub).
 **Stato:** Approvato dal Chairman.
 **Uso:** questo file è il registro delle decisioni architetturali (ADR — Architecture Decision Records). I prompt di sprint lo citano come fonte vincolante: **nessuno sprint può contraddire un ADR senza aprirne uno nuovo che lo sostituisca esplicitamente.**
-**Fonti:** verdetti C1–C6 e brief di ricerca R1/R2 in `08_VERBALI_CONSIGLI/`.
+**Fonti:** verdetti C1–C10 e brief di ricerca collegati (R1–R4, R7, R8) in `08_VERBALI_CONSIGLI/`; i brief R5/R6 (motore di inferenza e hardware di produzione) sono ricerca ancora aperta, non ancora fonte di ADR.
 
 > Convenzione: ogni decisione ha un identificativo **ADR-NN** con numerazione continua su tutti i consigli. Gli ADR sono normativi; le "Alternative scartate" spiegano il perché; i "Punti aperti" elencano verifiche esterne **obbligatorie prima della messa in produzione del modulo interessato**.
 
@@ -253,7 +253,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 - **Contatore automatico di richieste ripetute (v1)** — telemetria = secondo sistema di memoria; rinviato, non promesso.
 - **Automazione "email senza risposta da N giorni"** — costo di scansione alto per valore medio.
 - **Codice/JSON libero generato dall'LLM** — vietato da ADR-04; solo parametri su enum chiusi validati server-side.
-- **Sprint "S6b" prima del go-live** — viola ADR-03 e la regola del Parcheggio («da non iniziare prima del go-live»).
+- **Sprint "S6b" prima del go-live** — viola ADR-03 e la regola del Parcheggio («da non iniziare prima del go-live»). *(Nota C9: superato limitatamente alla modalità Chiamata, che ADR-59 colloca nello sprint S6-bis subito dopo S6 su decisione dell'utente; resta valido per memoria e automazioni, che rimangono in S9/S10.)*
 
 ### Punti aperti / verifiche esterne obbligatorie
 

@@ -14,11 +14,11 @@ Gestionale locale per piccola agenzia immobiliare italiana + agente AI locale JA
 
 ## OBIETTIVO DELLO SPRINT S1
 
-L'app esiste e si apre nel browser: login con 4 ruoli, audit log immutabile, gestione soggetti e immobili, e blocco pratiche su immobili senza APE.
+L'app esiste e si apre nel browser: login con 4 ruoli, audit log immutabile, gestione soggetti e immobili, con presidio APE sulle pratiche (ADR-21).
 
 ## AMBITO
 
-**Entra:** scaffold FastAPI + SQLite WAL; tabelle iniziali dal modello dati di `04_ARCHITETTURA.md` §3; login e 4 ruoli (Proprietario, Admin, Agente, Segretaria) con permessi; audit log; CRUD soggetti con validazione codice fiscale; CRUD immobili con APE e blocco pratiche senza APE; UI semplice con errori in italiano chiaro.
+**Entra:** scaffold FastAPI + SQLite WAL; tabelle iniziali dal modello dati di `04_ARCHITETTURA.md` §3; login e 4 ruoli (Proprietario, Admin, Agente, Segretaria) con permessi; audit log; CRUD soggetti con validazione codice fiscale; CRUD immobili con APE e presidio APE sulle pratiche (compito bloccante, non blocco di creazione — ADR-21); UI semplice con errori in italiano chiaro.
 **NON entra:** documenti (S2), privacy (S3), scadenze (S4), movimenti (S5), AI (S6). Se emerge qualcosa di non previsto: parcheggio Fase 2 e mi avvisi.
 
 ## TASK ORDINATI
@@ -28,7 +28,7 @@ L'app esiste e si apre nel browser: login con 4 ruoli, audit log immutabile, ges
 3. **Login e ruoli.** Implementa login con i 4 ruoli e i permessi approvati. Fammi testare l'accesso con almeno due ruoli diversi.
 4. **Audit log immutabile.** Ogni creazione/modifica/eliminazione registra: chi, cosa, quando, su quale record (con diff dei campi chiave). L'audit log non è modificabile dall'app. Fammi vedere le voci generate dai miei test.
 5. **CRUD soggetti.** Persone fisiche e giuridiche (campi di §3.1), con validazione del codice fiscale (check digit deterministico): CF sbagliato → rifiuto con messaggio comprensibile. Se la nazionalità è richiesta da un flusso e manca, il sistema la chiede: mai skip silenzioso.
-6. **CRUD immobili + blocco APE.** Immobile con dati catastali e blocco APE (campi di §3.2); la creazione di una pratica su immobile senza APE è **bloccata** con spiegazione chiara.
+6. **CRUD immobili + presidio APE (ADR-21, verbale C7).** Immobile con dati catastali e APE associata (campi di §3.2). La pratica si può creare **anche senza APE**, ma APE mancante o scaduta genera un **compito bloccante ben visibile** sulla pratica, che in S2 bloccherà la generazione dei documenti che la richiedono; l'esenzione APE è registrabile con motivo (e fa sparire il compito). Spiegazioni sempre in italiano chiaro.
 7. **Pulizia UI.** Liste con ricerca, form con etichette in italiano semplice, errori che dicono cosa fare, niente gergo tecnico. Applica la checklist design (sezione 4 di `REGOLE.md`) schermata per schermata.
 
 ## CRITERI DI ACCETTAZIONE (li verifico io)
@@ -36,7 +36,7 @@ L'app esiste e si apre nel browser: login con 4 ruoli, audit log immutabile, ges
 - [ ] Apro l'app nel browser e faccio login come Agente e come Segretaria: i menu sono diversi.
 - [ ] Inserisco un codice fiscale sbagliato: l'app lo rifiuta e mi spiega perché.
 - [ ] Creo un soggetto corretto, chiudo e riapro il browser: è ancora in lista.
-- [ ] Creo un immobile senza APE e provo ad aprire una pratica: l'app blocca e spiega.
+- [ ] Creo un immobile senza APE e apro una pratica: la pratica si crea, e sopra compare ben visibile il compito bloccante «APE mancante» (ADR-21); se registro un'esenzione con motivo, il compito sparisce.
 - [ ] Chiedo di vedere l'audit log: ci sono le operazioni che ho fatto, con data e utente.
 - [ ] Un messaggio di errore qualsiasi è in italiano comprensibile, senza codici o termini tecnici.
 

@@ -27,7 +27,7 @@ Lavori dentro l'app **Claude** sul Mac, usando due delle sue sezioni, più GitHu
 | Strumento | A cosa serve | Quando lo usi |
 |---|---|---|
 | **Code** (sezione di Claude Desktop) | L'ambiente di lavoro principale: Claude legge e scrive **direttamente i file sul Mac**, esegue i comandi al posto tuo (ti chiede il permesso), lavora sul repository. Ha i sub-agenti veri: qui funziona il consiglio llm-council completo. | **Sempre**: dalla sessione 1 a tutti gli sprint di sviluppo. |
-| **Claude Design** (sezione di Claude Desktop) | Disegna i **prototipi delle schermate** (mockup interattivi) e li consegna a Code per essere implementati. | Solo negli sprint con interfaccia: **S2** (modulo documentale) e **S6** (chat JARVIS). |
+| **Claude Design** (sezione di Claude Desktop) | Disegna i **prototipi delle schermate** (mockup interattivi) e li consegna a Code per essere implementati. | Negli sprint con interfaccia: **S2** (modulo documentale), **S6** (chat JARVIS), **S6-bis** (Chiamata), **S-Mob** (mobile) e, in Fase 2, **S9/S10** — vedi tabella Ambienti in `05_ROADMAP_SPRINT.md`. |
 | **GitHub + GitHub Desktop** | La cassaforte online del progetto. | Setup una volta; poi Claude fa commit e push da Code, tu verifichi. |
 
 > La sezione **Progetti** di Claude Desktop **non si usa** in questo progetto: Code fa tutto ciò che farebbe un Progetto, e in più lavora direttamente sui file.
@@ -44,9 +44,16 @@ Lavori dentro l'app **Claude** sul Mac, usando due delle sue sezioni, più GitHu
 | `03_DECISIONI_CONSIGLIO.md` | Le decisioni importanti già prese sul progetto e le alternative scartate (riferimento vincolante). |
 | `04_ARCHITETTURA.md` | Come è fatto il sistema: tecnologie, struttura dei dati, moduli (riferimento). |
 | `05_ROADMAP_SPRINT.md` | Il piano di lavoro diviso in sprint (le "tappe" del progetto) con l'ambiente da usare per ciascuno. |
-| `06_PROMPT_SPRINT/` | Una cartella con un prompt pronto da incollare per ogni sprint di sviluppo. |
+| `06_PROMPT_SPRINT/` | I prompt pronti da incollare per gli sprint S0–S8 (quelli di S6-bis, S-Mob, S9 e S10 si scrivono prima del rispettivo sprint). |
 | `07_HANDOFF_TEMPLATE.md` | Il modello di "riassunto di fine sessione" e le regole per salvare su GitHub. |
-| `08_VERBALI_CONSIGLI/` | I verbali integrali dei 6 consigli di progettazione (tracciabilità). |
+| `08_VERBALI_CONSIGLI/` | I verbali integrali dei 10 consigli di progettazione (C1–C10) e gli 8 brief di ricerca (R1–R8), per tracciabilità. |
+| `REGOLE.md` | Le regole operative del progetto: Claude le legge e riassume all'apertura di ogni sessione. |
+| `CLAUDE.md` | Il "pilota automatico": Code lo legge da solo a ogni avvio e gli ordina di rispettare `REGOLE.md`. Non va toccato. |
+| `Plan.md` | Il **cruscotto del progetto**: dove siamo, stato degli sprint, prossimo passo. Si aggiorna a ogni chiusura di sessione. |
+| `HANDOFF.md` | Il riassunto dell'ultima sessione di lavoro (il punto esatto di ripartenza). |
+| `config.example.toml`, `requirements.txt` | Configurazione di esempio del provider AI e dipendenze Python del progetto. |
+| `llm/`, `evals/`, `scripts/`, `setup/` | Il codice dello Sprint S0: astrazione provider AI, eval suite, script di backup e di setup. |
+| `.claude/skills/` | Le skill installate per Claude Code (llm-council, superpowers, ponytail…). Non vanno toccate a mano. |
 
 Leggi solo questo file `00` e il `02`. Gli altri li userai copiando e incollando, quando indicato.
 
@@ -96,7 +103,7 @@ Verifica che entrambi i file compaiano su github.com.
 
 ### Passo 5 — Le sessioni di sviluppo: un prompt di sprint per sessione
 
-Il progetto avanza a **sprint** (tappe), elencati nel file `05_ROADMAP_SPRINT.md`. Per ogni sprint esiste un prompt pronto nella cartella `06_PROMPT_SPRINT/`.
+Il progetto avanza a **sprint** (tappe), elencati nel file `05_ROADMAP_SPRINT.md`. Gli sprint S0–S8 hanno un prompt pronto nella cartella `06_PROMPT_SPRINT/`; i prompt di S6-bis, S-Mob, S9 e S10 si scrivono prima di avviare il rispettivo sprint (lo stato è tracciato in `Plan.md`).
 
 Il metodo è sempre lo stesso:
 
@@ -106,7 +113,7 @@ Il metodo è sempre lo stesso:
 4. Lavora con Claude su **quella sola task**, finché il "criterio di accettazione" (lo trovi scritto nel prompt di sprint) non è soddisfatto.
 5. Finito? Esegui il **rituale di chiusura** (Passo 7) e chiudi la sessione.
 
-> **Sprint S2 e S6 — eccezione Claude Design.** In questi due sprint, prima di implementare le schermate, il prompt ti guiderà ad aprire **Claude Design** per generare il prototipo visivo, farlo vedere a chi userà il gestionale (segretaria/agenti), raccogliere il feedback, e poi tornare in Code per implementarlo. È l'unico momento in cui esci da Code.
+> **Sprint con interfaccia (S2, S6, S6-bis, S-Mob e, in Fase 2, S9/S10) — eccezione Claude Design.** In questi sprint, prima di implementare le schermate, il prompt ti guiderà ad aprire **Claude Design** per generare il prototipo visivo, farlo validare da chi userà quelle schermate, raccogliere il feedback, e poi tornare in Code per implementarlo. Attenzione (ADR-50): per S2 validano **segretaria/agenti**; per S6 (chat JARVIS) e S6-bis (Chiamata) il validatore è il **solo Proprietario**, perché la chat è riservata a lui. Sono gli unici momenti in cui esci da Code.
 
 ### Passo 6 — Rituale di apertura di OGNI sessione (obbligatorio)
 

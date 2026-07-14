@@ -28,7 +28,7 @@ Il consenso privacy è generato, firmato, scansionato e tracciato come record im
 3. **Record consenso immutabile.** Alla scansione si crea il RecordConsenso (§3.7): soggetto, data, versione del modulo informativa, hash SHA-256 del file, timestamp, stato valido/scaduto. Non modificabile dall'app; visibile dalla scheda soggetto.
 4. **Cambio informativa.** Quando una nuova versione dell'informativa viene depositata, i consensi legati a versioni precedenti passano a "scaduto" e la scheda del soggetto segnala "ri-firma richiesta" finché non carico la nuova scansione.
 5. **Allegato automatico.** Il pacchetto pratica include sempre l'informativa nella versione depositata corrente.
-6. **Backup schedulato.** Lo script `backup.sh` (S0) viene schedulato (launchd/cron) con frequenza che decidiamo; copia offsite cifrata (decidiamo insieme la destinazione: disco esterno o cloud cifrato — deve stare fuori dall'edificio).
+6. **Backup schedulato.** Lo script `scripts/backup_db.sh` (S0) viene schedulato (launchd/cron) con frequenza che decidiamo; copia offsite cifrata (decidiamo insieme la destinazione: disco esterno o cloud cifrato — deve stare fuori dall'edificio).
 7. **Restore test mensile guidato.** Un task guidato nell'app (o checklist stampabile) che ogni mese mi fa ripristinare il backup su una copia di prova e registra l'esito (data, esito).
 8. **Alert.** Notifica evidente se il backup fallisce o il disco si sta riempiendo; fammi simulare un fallimento per vederlo.
 

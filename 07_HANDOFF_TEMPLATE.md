@@ -23,15 +23,16 @@ A fine di ogni sessione di lavoro in Code, **prima di chiudere la sessione**, in
 > 6. Problemi aperti (cosa non funziona, dubbi, cose rimandate):
 > 7. PROSSIMO PASSO (l'azione esatta da cui ripartire nella prossima sessione):
 > 8. Comandi da eseguire per riprendere (se servono, copiabili):
+>
+> Salva il riassunto come `HANDOFF.md` nella root del repository (sostituendo il vecchio) e aggiorna anche il cruscotto `Plan.md` (stato degli sprint e PROSSIMO PASSO).
 
 ════════════════ RICHIESTA RIASSUNTO — COPIA FINO A QUI ════════════════
 
 ### Dove lo salvi
 
-Claude ti risponderà con il riassunto compilato. Tu devi salvarlo nel repository come file **`HANDOFF.md`**:
+In **Code** è Claude a salvarlo da solo: scrive il riassunto nel repository come file **`HANDOFF.md`** (sostituendo quello vecchio) e aggiorna anche il cruscotto **`Plan.md`**. Tu verifica solo che te lo confermi e che i due file risultino modificati.
 
-1. Se Claude ti offre un file scaricabile: scaricalo e mettilo nella cartella `gestionale-immobiliare` (quella collegata a GitHub), con il nome `HANDOFF.md`, sostituendo quello vecchio.
-2. Altrimenti: apri **TextEdit** (Mac) o **Blocco note** (Windows), incolli il riassunto e salvi come `HANDOFF.md` nella stessa cartella, sostituendo quello vecchio.
+Solo come ripiego, se il salvataggio automatico non riesce: apri **TextEdit** (Mac) o **Blocco note** (Windows), incolli il riassunto e salvi come `HANDOFF.md` nella cartella `gestionale-immobiliare` (quella collegata a GitHub), sostituendo quello vecchio.
 
 > **Perché si sostituisce e non si accumula?** Perché deve esistere sempre **un solo** `HANDOFF.md`: quello dell'ultima sessione. Così la prossima sessione non può confondersi leggendo un riassunto vecchio. La storia completa resta comunque salvata su GitHub (ogni commit conserva la versione precedente).
 
@@ -96,7 +97,7 @@ git push
 Da seguire in ordine, a ogni fine sessione, senza eccezioni:
 
 1. **Riassunto**: ho incollato la richiesta del Riassunto di chiusura sessione e Claude me lo ha prodotto completo (tutti gli 8 punti).
-2. **Salvataggio handoff**: ho salvato il riassunto come `HANDOFF.md` nella cartella del repository, sostituendo il vecchio.
+2. **Salvataggio handoff**: Claude ha salvato il riassunto come `HANDOFF.md` (sostituendo il vecchio) e ha aggiornato `Plan.md`; ho verificato che entrambi risultino modificati.
 3. **Verifica accettazione**: l'handoff dice chiaramente se il criterio di accettazione della task è rispettato, parziale o no.
 4. **Commit**: ho salvato con un messaggio nel formato `sprint-N: descrizione breve`.
 5. **Push + verifica**: ho fatto il push e ho controllato su github.com che le modifiche siano online.

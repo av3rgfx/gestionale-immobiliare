@@ -395,7 +395,7 @@ Regole operative:
 
 ### 8.1 Backup (ADR-06)
 ```
-job notturno (launchd): sqlite3 .backup → ~/Gestionale/backup/db_YYYYMMDD.sqlite
+job notturno (launchd): sqlite3 .backup → ~/Gestionale/backup/db_YYYYMMDD_HHMMSS.sqlite
                     │ (snapshot consistente, MAI copia a caldo di -wal/-shm)
                     ▼
           copia offsite CIFRATA (fuori dall'edificio)
