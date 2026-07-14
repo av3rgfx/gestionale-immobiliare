@@ -1,0 +1,6 @@
+{
+  "id": "determinismo",
+  "domanda": "Nel nostro sistema il testo legale dei contratti NON lo inventa l'intelligenza artificiale: esce da modelli (template) versionati e riempiti dal codice. Da cosa esce il testo dei contratti? Rispondi in una frase.",
+  "parole_attese": ["template", "modell"],
+  "nota": "Principio non negoziabile: deterministico prima dell'AI; l'LLM non e' autore di testo legale (ADR-02, 04 par. 1)."
+}

@@ -1,43 +1,52 @@
 # HANDOFF — Riassunto di chiusura sessione
 
 ## 1. Data e numero sessione
-14/07/2026 — **Sessione di riordino della progettazione** (pre-S1), eseguita in Claude Code (ambiente remoto, branch `claude/affectionate-edison-76fmij`). Eseguito un audit di coerenza dell'intera documentazione (56 agenti in parallelo, ogni segnalazione ri-verificata).
+14/07/2026 — **Sprint S0 (completamento residui lato‑repository)**, eseguita in Code in **ambiente remoto/cloud Linux** (non sul Mac dell'utente), branch `claude/regole-summary-krvr30`.
 
 ## 2. Stato attuale del progetto (una riga)
-Progettazione completa e **riallineata** (C1–C10, ADR-01…70); **scaffold S0 già in `main`** (dal 13/07, PR #1) con residui da completare sul Mac; PR #3 (progettazione C9/C10) **fusa in `main`** il 14/07; il cruscotto del progetto vive ora in `Plan.md`.
+S0 quasi finito: tutto il lavoro **lato‑repository è completato e verificato qui**; restano solo i passi che richiedono il **Mac dell'utente e la sua chiave API** (installazioni, cartella dati reale, test AI reale, eval sul provider vero, backup reale).
 
 ## 3. Cosa è stato fatto in questa sessione (con i file)
-- **Audit completo di coerenza** della progettazione: 36 incongruenze uniche confermate e corrette.
-- **`CLAUDE.md` ricreato** (testo di `02` sez. A + rimando a `Plan.md`): era stato **cancellato per errore il 13/07** (commit "Delete CLAUDE.md", prevalso nel merge della PR #1) — il caricamento automatico delle regole era quindi inattivo. Il blocco prescritto in `02` sez. A è stato aggiornato in modo identico.
-- **`Plan.md` creato**: cruscotto unico (stato, tracker sprint, residui S0, verifiche esterne, decisioni aperte); il rituale di chiusura in `07` ora chiede di aggiornarlo insieme all'handoff.
-- **Correzioni**: `00_LEGGIMI.md` (mappa file reale, 10 consigli, prompt S0–S8, Claude Design esteso, validatore S6 = Proprietario); `01_PROMPT_MAESTRO.md` (10 consigli, ADR-01…70, file 00–08); `02` (consigli C1–C10; blocco CLAUDE.md); `03` (Fonti C1–C10; nota di superamento parziale sullo scarto "S6b" per ADR-59); `04` (nome file di backup allineato allo script); `05` (Fonte C1–C10; prompt S0–S8; regola 4 → Ollama da S6 per ADR-48; `db.sqlite` nasce in S1; parcheggio con S6-bis/S-Mob); `07` (in Code l'handoff lo salva Claude; rituale esteso a `Plan.md`).
-- **Prompt di sprint allineati agli ADR**: `S0` (script `scripts/backup_db.sh`, `db.sqlite` in S1, dipendenze per sprint); `S1` (presidio APE per **ADR-21**: pratica creabile senza APE + compito bloccante + esenzione con motivo); `S2` (integrato il **Consiglio C10**: Dizionario dei Campi, templatizzazione assistita, invariante di non-alterazione, metriche di gate — ADR-64…70); `S3` (nome script backup); `S6` (prerequisito **ADR-48** Mac Mini+Ollama ed eval locale come done; validatore = **Proprietario** per **ADR-50**; demo perimetrata + pagina «cosa NON fa JARVIS» del C8; task condizionale LLM-assist **ADR-69**).
+- **Verifica sessione 1 (Task 1):** harness completa (`00`–`08` + `06_PROMPT_SPRINT/`), `REGOLE.md`, `CLAUDE.md`, `HANDOFF.md` presenti; `CLAUDE.md` rimanda correttamente a `REGOLE.md`. Nessun file mancante.
+- **Eval portate da 6 a 12 casi (Task 5):** creati `evals/casi/07_ruoli.json`, `08_conferma_umana.json`, `09_backup.json`, `10_scadenza_trigger.json`, `11_determinismo.json`, `12_dati_sintetici.json` (italiano, dati sintetici, ognuno legato a un ADR). Runner verificato in modalità prova: 12/12 casi letti e report generato.
+- **`README.md` ampliato (Task 3):** documenta che tutti i dati vivono in `~/Gestionale/` (con struttura), la configurazione via `config.toml` (segreti fuori da Git), l'avvio sul Mac e la procedura di backup + ripristino di prova.
+- **`scripts/backup_db.sh` completato (Task 6):** aggiunte nell'output le istruzioni del **test di ripristino** su copia di prova.
+- **Pulizia:** `.gitignore` ora ignora `evals/report_*.md` (sono output); rimosso il report vecchio `evals/report_20260713_1708.md` committato per errore.
+- **Verifiche eseguite qui (prove reali):** `requirements.txt` installa in venv pulito (openai 2.45); tutti i `.py` compilano; `provider.py` senza `config.toml` dà l'errore guidato in italiano (nessuna chiave usata); `crea_cartella_dati.sh` crea la struttura attesa; flusso **backup → integrity_check → riapertura con dati** dimostrato con il motore SQLite (equivalente allo script).
+- **Non toccati (già corretti):** `llm/provider.py`, `llm/test_connessione.py`, `evals/esegui_evals.py`, `setup/installa_mac.sh`, `setup/crea_cartella_dati.sh`, `config.example.toml`, `requirements.txt`.
 
 ## 4. Decisioni prese e perché (breve)
-- **Struttura dei file invariata** (niente rinomini/spostamenti): i rituali e i prompt citano i nomi attuali ovunque; riorganizzare avrebbe rotto la harness per pura estetica (REGOLE §2).
-- **`Plan.md` come cruscotto unico**: HANDOFF racconta l'ultima sessione, Plan.md lo stato d'insieme; si aggiornano insieme a ogni chiusura.
-- **Prompt di S6-bis, S-Mob, S9, S10 NON creati ora**: si scrivono prima del rispettivo sprint (niente lavoro "per dopo" — REGOLE §2); tracciato in `Plan.md`.
-- **Nessun file di codice toccato**: l'audit non ha trovato incongruenze interne allo scaffold.
+- **Sessione in cloud, non sul Mac:** i passi macchina‑specifici (Homebrew/LibreOffice/font, `~/Gestionale/` reale, test con chiave, eval sul provider vero, backup reale) **restano all'utente sul Mac** — la chiave API non entra mai nel cloud (ADR‑05). Segnalato all'utente e approvato prima di procedere (REGOLE §1).
+- **12 casi eval (dentro il range 10–15):** sufficienti per lo skeleton, niente lavoro extra «già che ci siamo» (REGOLE §2).
+- **Report eval fuori da Git:** sono output rigenerabili, non codice (REGOLE §2).
+- **Nessuna riscrittura del codice già funzionante** (provider/test/runner): si tocca solo ciò che serve (REGOLE §2).
+- **Destinazione offsite del backup non ancora scelta:** da decidere insieme quando si prova sul Mac (disco esterno o cloud cifrato), come chiede il prompt.
 
 ## 5. Criterio di accettazione della task
-**Rispettato.** (1) `CLAUDE.md` esiste ed è conforme al blocco di `02` sez. A; `Plan.md` mostra stato e prossimo passo in una pagina. (2) Le frasi superate ("6 consigli", "ADR-01…ADR-46", "nessuna riga di codice", "backup.sh"…) non compaiono più (verificato con ricerca su tutto il repo). (3) I prompt S1/S2/S6 sono allineati ad ADR-21, ADR-48, ADR-50, ADR-64…70; nessun contenuto estraneo alterato.
+**Parzialmente rispettato.** Rispettato e verificato **tutto ciò che è lato‑repository**: harness completa e `CLAUDE.md`→`REGOLE.md`; eval con 12 casi + report; `scripts/backup_db.sh` con istruzioni di ripristino (flusso provato qui); `README` che documenta `~/Gestionale/`. **Non completabili dal cloud** (mancano il Mac e la chiave): «risposta del modello in italiano» dal test AI, «eval sul provider vero», «`~/Gestionale/` esiste» sul Mac, «backup con file nella destinazione» sul Mac. Per questi è fornito un runbook (punto 8).
 
 ## 6. Problemi aperti (rimandati / da verificare)
-- **Residui S0** (solo sul Mac dell'utente, checklist completa in `Plan.md`): ambiente dev, `~/Gestionale/`, `config.toml`, test di connessione reale, eval sul provider vero + casi da 6 a 10–15, prova di backup/ripristino.
-- **Verifiche esterne da calendarizzare** (le più vicine in `Plan.md`; tabella completa in `05`).
-- **Decisione hardware** (quale Mac di produzione, brief R6) prima di S6; walking skeleton voce prima di S6-bis.
+- **Da fare sul Mac (runbook):** ambiente dev, creazione `~/Gestionale/`, `config.toml` compilato, test di connessione reale, eval sul provider vero, backup + ripristino reale.
+- **Scelta della destinazione offsite** del backup (disco esterno / cloud cifrato).
+- **Nota tecnica:** il binario `sqlite3` non era installabile nel container cloud; il backup è stato provato col motore SQLite via Python (equivalente). Su macOS il binario `sqlite3` è già incluso: lo script gira così com'è.
+- **Nota tecnica:** `provider.py` usa `tomllib`, disponibile da Python ≥3.11; `setup/installa_mac.sh` installa Python 3.12 → compatibile.
 
 ## 7. PROSSIMO PASSO (azione esatta)
-1. **Far revisionare e fondere la PR** del branch `claude/affectionate-edison-76fmij` in `main`.
-2. Poi, sul Mac, in una **sessione nuova** di Code: frase rituale + prompt `06_PROMPT_SPRINT/S0_fondamenta.md` per **completare i residui S0** (lo scaffold c'è già: il prompt verifica e completa).
-3. Chiuso S0 → sessione nuova con `06_PROMPT_SPRINT/S1_core_gestionale.md` (**inizio del vero sviluppo**).
+Sul **Mac**, in una **sessione nuova** di Code sulla cartella del repository (dopo `git pull`), eseguire il runbook S0 in ordine e verificare i 5 criteri di accettazione:
+1. `bash setup/installa_mac.sh`
+2. `bash setup/crea_cartella_dati.sh`
+3. `cp config.example.toml config.toml` → aprire `config.toml` e compilare `base_url`, `model`, `api_key` del provider cloud
+4. `./.venv/bin/python llm/test_connessione.py` (deve stampare una risposta in italiano)
+5. `./.venv/bin/python evals/esegui_evals.py` (deve produrre un report con l'esito dei 12 casi)
+6. Backup: quando esisterà `db.sqlite` (S1) o con un DB di prova, `bash scripts/backup_db.sh` e seguire le istruzioni di ripristino stampate.
+Poi chiudere S0 e passare a `06_PROMPT_SPRINT/S1_core_gestionale.md`.
 
-## 8. Comandi per riprendere (dopo il merge della PR)
+## 8. Comandi per riprendere (sul Mac)
 ```bash
 cd ~/Documenti/gestionale-immobiliare
-git checkout main
-git pull origin main
+git checkout claude/regole-summary-krvr30   # oppure main, dopo il merge della PR
+git pull
 # poi, in una sessione NUOVA di Code, la frase rituale:
 #   "Leggi REGOLE.md e riassumilo in 5 righe prima di toccare codice."
-# quindi incollare il prompt di 06_PROMPT_SPRINT/S0_fondamenta.md
+# quindi eseguire i passi 1-6 del PROSSIMO PASSO qui sopra.
 ```

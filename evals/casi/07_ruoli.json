@@ -1,0 +1,6 @@
+{
+  "id": "ruoli",
+  "domanda": "Elenca i quattro ruoli utente del gestionale immobiliare (Admin, Agente, Segretaria, Proprietario). Rispondi solo con l'elenco.",
+  "parole_attese": ["propriet", "agente", "segretaria", "admin"],
+  "nota": "Dominio permessi: i quattro ruoli sono alla base di login e audit (04 par. 3.10, ADR-42/ADR-08)."
+}

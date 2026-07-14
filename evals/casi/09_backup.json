@@ -1,0 +1,6 @@
+{
+  "id": "backup",
+  "domanda": "Per fare una copia di sicurezza consistente di un database SQLite aperto NON si copiano i file a mano: si usa il comando '.backup'. Con quale parola si chiama questo comando? Rispondi con una parola.",
+  "parole_attese": ["backup"],
+  "nota": "Dominio backup: 'sqlite3 .backup', mai copia a caldo dei file -wal/-shm (ADR-06)."
+}

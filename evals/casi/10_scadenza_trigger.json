@@ -1,0 +1,6 @@
+{
+  "id": "scadenza_trigger",
+  "domanda": "Nel modulo scadenze delle locazioni un promemoria scatta alcuni mesi PRIMA della fine del contratto, non dopo. Il primo avviso arriva prima o dopo la scadenza? Rispondi con una parola.",
+  "parole_attese": ["prima"],
+  "nota": "Dominio scadenze: i trigger anticipano la scadenza (fine triennio -7 mesi), non la seguono (ADR-24)."
+}

@@ -2,7 +2,7 @@
 
 *Un solo posto per capire dove siamo. Si aggiorna a ogni chiusura di sessione, insieme a `HANDOFF.md` (che racconta la singola sessione; qui c'è il quadro d'insieme). I dettagli degli sprint sono in `05_ROADMAP_SPRINT.md`; le decisioni vincolanti in `03_DECISIONI_CONSIGLIO.md`.*
 
-**Ultimo aggiornamento:** 14/07/2026 — sessione di riordino della progettazione.
+**Ultimo aggiornamento:** 14/07/2026 — sessione S0: completati e verificati i residui lato‑repository (restano i passi sul Mac).
 
 ## Stato in una riga
 
@@ -33,16 +33,23 @@ Progettazione completa e riallineata (10 consigli, 70 ADR); Sprint S0 quasi fini
 | S9 — JARVIS personale *(Fase 2)* | Memoria personale | ⬜ | ❌ da scrivere prima dello sprint |
 | S10 — Trigger email *(Fase 2)* | Automazioni email | ⬜ | ❌ da scrivere prima dello sprint |
 
-## Residui S0 (da fare sul Mac, con il prompt S0)
+## Residui S0
 
-- [ ] Ambiente dev: Homebrew, Python 3, LibreOffice, font Liberation, virtualenv + `requirements.txt`.
-- [ ] Cartella dati `~/Gestionale/` (script `setup/crea_cartella_dati.sh`).
+**Fatti e verificati lato‑repository (sessione 14/07):**
+- [x] Eval suite: casi portati da **6 a 12** (dentro 10–15); runner verificato (report generato in modalità prova).
+- [x] `README.md` documenta la cartella dati `~/Gestionale/`, la configurazione e la procedura di backup/ripristino.
+- [x] `scripts/backup_db.sh`: aggiunte le istruzioni del test di ripristino; flusso backup→integrità→riapertura provato col motore SQLite.
+- [x] Pulizia: report eval fuori da Git (`evals/report_*.md` in `.gitignore`).
+
+**Da fare sul Mac (richiedono la macchina e la chiave API — runbook in `HANDOFF.md` §7):**
+- [ ] Ambiente dev: Homebrew, Python 3, LibreOffice, font Liberation, virtualenv + `requirements.txt` (`bash setup/installa_mac.sh`).
+- [ ] Cartella dati `~/Gestionale/` reale (`bash setup/crea_cartella_dati.sh`).
 - [ ] `config.toml` compilato da `config.example.toml` (chiave del provider cloud di sviluppo).
-- [ ] Test di connessione reale al provider (`llm/test_connessione.py`): risposta del modello visibile.
-- [ ] Eval suite eseguita sul provider vero (finora solo modalità prova) e casi portati da 6 a 10–15.
-- [ ] Backup provato davvero: `scripts/backup_db.sh` + ripristino su copia di prova (quando esisterà `db.sqlite`, in S1, oppure con un db di prova).
+- [ ] Test di connessione reale al provider (`llm/test_connessione.py`): risposta del modello in italiano visibile.
+- [ ] Eval suite eseguita sul **provider vero** (finora solo modalità prova).
+- [ ] Backup provato davvero + ripristino su copia di prova (con `db.sqlite` di S1 o un db di prova). **Da scegliere insieme:** destinazione offsite (disco esterno / cloud cifrato).
 
-*(Fatti: repo+harness su GitHub ✅, `REGOLE.md` ✅, `CLAUDE.md` ✅, astrazione provider ✅, eval skeleton ✅, bozza backup ✅.)*
+*(Fatti in sessione 1: repo+harness su GitHub ✅, `REGOLE.md` ✅, `CLAUDE.md` ✅, astrazione provider ✅, eval skeleton ✅, bozza backup ✅.)*
 
 ## Verifiche esterne più vicine (tabella completa in `05_ROADMAP_SPRINT.md`)
 
