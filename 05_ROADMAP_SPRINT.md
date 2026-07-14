@@ -15,6 +15,7 @@
 | Sessione 1 + S0, S1, S3, S4, S5, S7, S8 | **Code** (sezione di Claude Desktop), sulla cartella del repository |
 | S2 e S6 | **Code**, con una deviazione guidata in **Claude Design** per disegnare il prototipo delle schermate, farlo validare da chi userà il gestionale, e poi implementarlo in Code tramite handoff. Il prompt di sprint ti guida passo passo. **Attenzione (ADR-50)**: per la chat JARVIS di S6 il validatore del prototipo è il **Proprietario** (la chat è solo sua), non segretaria/agenti. |
 | S9 e S10 (Fase 2, dopo il go-live) | **Code**; per le schermate nuove («Cose da ricordare», «Automazioni», coda «Da approvare») vale la stessa deviazione in **Claude Design** di S2/S6. |
+| S-Mob (mobile, pre-go-live) e S6-bis (Chiamata JARVIS, subito dopo S6) | **Code**; la resa mobile responsive e la UI della modalità Chiamata seguono la stessa deviazione in **Claude Design** di S2/S6 (per la Chiamata il validatore è il **Proprietario**). Decisioni: ADR-55…63 (verbale C9). |
 
 La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
@@ -31,7 +32,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 | Verifica | Da fare entro | Chi |
 |---|---|---|
-| Test su 5–10 modelli reali depositati in Camera di Commercio (conversione, font, dry-run, confronto stampa) | durante S2 | agenzia + Claude |
+| Test su 5–10 modelli reali depositati in Camera di Commercio (conversione, font, dry-run, confronto stampa; **+ C10:** recall/precision del parser campi vuoti, invariante di non-alterazione, usabilità wizard con la segretaria) | durante S2 | agenzia + Claude |
 | Validazione legale delle due scadenze l. 431/98 (doppio trigger) | durante S4, prima del go-live del modulo | consulente legale |
 | Validazione legale dei template da un professionista + nominare un responsabile aggiornamento normativo | durante S2 | consulente legale |
 | Verifica soglie AML con il consulente antiriciclaggio dell'agenzia | durante S5 | consulente AML |
@@ -42,6 +43,10 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 | Conferma retention differenziata immagini documenti (ADR-49) | durante S5 | consulente AML |
 | Addendum DPIA per la memoria personale (ADR-51) | prima di S9 | con Claude + eventuale consulente privacy |
 | Addendum DPIA + informativa per il trattamento email (ADR-54) | prima di S10 | con Claude + eventuale consulente privacy |
+| DPA Tailscale sottoscritto + registro dei trattamenti aggiornato per i metadati del control-plane (ADR-56) | prima di S-Mob in produzione | agenzia + con Claude |
+| DPIA "leggera" (art. 35) su voce + accesso remoto + AI (ADR-59/60) | prima di S6-bis | con Claude + eventuale consulente privacy |
+| Verifica licenza della voce TTS adottata + uso server-side GPL-3.0 non distribuito (ADR-61) | prima di S6-bis | con Claude + eventuale legale |
+| Parere art. 173 CdS / responsabilità civile per la policy d'uso alla guida (ADR-59) | prima di S6-bis | consulente legale |
 
 ---
 
@@ -104,13 +109,17 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - **Prototipo in Claude Design (prima del codice UI):** le schermate del modulo documentale (lista template, ciclo di vita, anteprima PDF, generazione pacchetto) vengono prima disegnate in Claude Design seguendo la checklist Design di `REGOLE.md`, fatte provare a segretaria/agenti, corrette col loro feedback, e solo poi implementate in Code.
 - Ciclo di vita template: bozza → depositata → ritirata; hash SHA-256; lock sulle depositate; approvazione per ruolo.
 - Import `.doc`/`.odt` → conversione una tantum in `.docx` → nasce **bozza da approvare**.
+- **Templatizzazione assistita all'import (Consiglio C10, ADR-67):** uno **script deterministico** rileva i campi vuoti del modulo (puntini, underscore, celle vuote, campi modulo Word); un **wizard** ti fa assegnare a ciascuno un tag scelto dal **Dizionario dei Campi** (menu in italiano, con **memoria delle etichette**); i tag li inserisce **il codice** su una copia — **mai l'LLM**.
+- **Dizionario dei Campi (ADR-64/65/66):** vocabolario canonico a oggetti (`{{ locatore.nome }}`), campi atomici (nome/cognome, indirizzo scomposto), ricomposizioni via filtri (importo in lettere dal numero); ogni tag agganciato a un dato reale (**tag orfani rifiutati**). Governance con steward e alias.
+- **Invariante di non-alterazione (ADR-68):** al salvataggio, se il **testo fisso** del modulo è cambiato rispetto all'originale il sistema **rifiuta**; se differisce dal modello depositato avvisa «**richiede ri-deposito in Camera di Commercio**». Audit trail della templatizzazione + golden test in CI.
+- **In S2 nessun LLM:** tutto deterministico + conferma umana. L'aiuto dell'LLM (sola pre-selezione del tag) è **condizionale e arriva da S6** (ADR-69), solo se lo script non risolve già ~85-90% dei campi. **Nessun modulo reale dell'agenzia va sul cloud** (ADR-70).
 - Dry-run al salvataggio: segnaposti irrisolti e font mancanti segnalati in italiano semplice, con dati finti.
 - Rendering on-demand dai dati canonici (**nessuna cascata**); generazione bloccata con elenco campi mancanti.
 - Tasto "Genera pacchetto pratica" con moduli condizionali (es. mutuo solo se previsto).
 - Anteprima = PDF generato e archiviato alla creazione dell'istanza (PDF.js); correzione dato → rigenerazione esplicita come nuova istanza; pratiche in corso legate alla versione di nascita.
-- Test di validazione sui 5–10 modelli reali depositati in CdC: conversione PDF, controllo font, confronto stampa/anteprima.
+- Test di validazione sui 5–10 modelli reali depositati in CdC: conversione PDF, controllo font, confronto stampa/anteprima; **e (Consiglio C10)** recall/precision del parser dei campi vuoti, quota di pre-match deterministico etichetta→tag, esito dell'invariante di non-alterazione.
 
-**Cosa NON entra:** firme digitali/OTP (Fase 2); conservazione a norma con valore probatorio (verifica legale esterna); PDF come template (mai).
+**Cosa NON entra:** firme digitali/OTP (Fase 2); conservazione a norma con valore probatorio (verifica legale esterna); PDF come template (mai); **LLM che scrive nel file** (mai: solo classificazione del tag, e solo da S6 — ADR-69); **invio di moduli reali dell'agenzia al cloud** (ADR-70).
 
 **Criteri di done:**
 - [ ] Carichi un modello Word reale dell'agenzia, lo approvi: passa a "depositata" e vedi il suo hash; provi a modificarlo: il sistema blocca.
@@ -118,8 +127,11 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Togli un dato obbligatorio dalla pratica e rigeneri: il sistema blocca ed elenca i campi mancanti.
 - [ ] "Genera pacchetto pratica" produce tutti i documenti previsti, e quelli condizionali solo se servono.
 - [ ] Modifichi un template: nasce una nuova versione; una pratica vecchia continua a usare la sua versione originale.
+- [ ] Importi un modulo grezzo: il wizard **evidenzia i campi** da compilare; assegni i tag dal menu e ottieni un template **bozza**.
+- [ ] Provi a salvare un template in cui è cambiata una parola del **testo fisso**: il sistema **rifiuta** (invariante di non-alterazione).
+- [ ] Assegni un tag non presente nel Dizionario: viene **bloccato** al salvataggio con messaggio chiaro.
 
-**Rischi principali:** fedeltà dei font (mitigato: Liberation + test sui modelli reali **prima** di scrivere altro codice; se fallisce, si correggono i template, non il motore); artefatti della conversione `.doc`/`.odt`; deposito CdC da rinnovare a ogni modifica (il promemoria automatico arriva in S5).
+**Rischi principali:** fedeltà dei font (mitigato: Liberation + test sui modelli reali **prima** di scrivere altro codice; se fallisce, si correggono i template, non il motore); artefatti della conversione `.doc`/`.odt`; deposito CdC da rinnovare a ogni modifica (il promemoria automatico arriva in S5); **campi vuoti non rilevati** dal parser (un campo mancato = riga bianca invisibile ai controlli — mitigato: parser ad alto recall, misura al gate, contatore di copertura con motivo).
 
 ---
 
@@ -222,6 +234,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - HITL con sostanza: ogni scrittura proposta mostra un **diff leggibile** dei dati chiave; conferma esplicita; tutto in audit log.
 - Libreria skill Markdown: JARVIS può **proporre** skill; attivazione solo con approvazione umana + commit Git; nessuna skill auto-attiva; **mai codice generato**.
 - Eval suite italiana eseguita su cloud **e sul modello locale** (prima esecuzione locale = criterio di done — ADR-48); report archiviati.
+- **(Condizionale — ADR-69)** LLM-assist alla **templatizzazione dei moduli** (pre-selezione del tag dal Dizionario, ADR-64): si costruisce **solo se** i log di S2 mostrano che lo script deterministico risolve < ~85-90% dei campi; l'LLM **classifica su vocabolario chiuso**, non scrive mai nel file.
 
 **Cosa NON entra:** scrittura libera di JARVIS sul DB (solo tramite funzioni deterministiche approvate); skill auto-attive; nuove capacità oltre i tool approvati (Fase 2: estensione scrittura).
 
@@ -235,6 +248,35 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Demo perimetrata al Proprietario + pagina **«cosa NON fa JARVIS»** approvata per iscritto (mitigazione del gap di aspettative — verbale C8).
 
 **Rischi principali:** rubber-stamping ("approvo senza leggere" — mitigato: diff sostanziali, non un pulsante); tool-calling instabile su modelli locali (mitigato: verifica esistenza/benchmark del modello prima; provider cloud in dev); prompt injection (mitigato: elenco chiuso di tool, niente codice generato).
+
+---
+
+## S6-bis — Modalità Chiamata JARVIS (canale vocale) *(subito dopo S6)*
+
+**Obiettivo (una riga):** JARVIS parla e ascolta a mani libere: a voce solo domande (lettura) e dettatura di proposte che vanno in coda; ogni scrittura si approva col diff **a video**. Uso frequente, di norma alla scrivania (l'auto è un caso tra i tanti).
+
+> **Collocazione (decisione utente):** canale di **primo piano** di JARVIS, **subito dopo S6** — non più "Fase 3". **Non blocca il go-live (S8):** se il walking skeleton passa può entrare nel prodotto iniziale, altrimenti slitta al primo posto della Fase 2. Riferimenti: ADR-59, ADR-60, ADR-61, ADR-63; architettura §4.8 e §10.
+
+**Prerequisiti:** S6 chiuso (Mac Mini M4 + modello locale via Ollama attivi); **walking skeleton di misura superato** (RAM a regime col 27B + voce, e latenza per turno ≤ **4 s** — sulla LAN è ben più bassa; il caso peggiore è il 4G); **pagina «cosa NON fa JARVIS» aggiornata e rifirmata**; verifiche esterne C9 (DPIA leggera, licenza voce TTS, retention trascrizioni, parere art. 173 CdS per l'uso alla guida).
+
+**Cosa entra:**
+- **Walking skeleton (prima di tutto):** misura reale di RAM e latenza con la pipeline voce accesa; se sopra soglia, si rifirmano le aspettative o si rinvia.
+- **Prototipo in Claude Design:** schermata della Chiamata (orb, waveform, stato push-to-talk, coda proposte), validata dal **Proprietario**.
+- **Stack voce locale** (ADR-61): endpoint WebSocket in FastAPI, processi **on-demand**; **whisper.cpp** (STT), **Ollama 27B** già residente, **TTS scelto con demo audio** (`say`/AVSpeech → Piper `it_IT-paola` → Kokoro). Nessun framework, nessun servizio sempre acceso.
+- **Half-duplex push-to-talk**, risposte max 2 frasi; **orb/waveform nativi** (AnalyserNode + Canvas + CSS), zero dipendenze.
+- **HITL a voce** (ADR-59/60): Q&A read-only + dettatura proposte con **read-back verbale** → coda «Da approvare»; **gate di scrittura nel codice** (token dalla UI dopo il diff, non forgiabile dall'LLM); niente "approva tutto". Trascrizione = **input non fidato**, loggata; **nessun audio persistito**.
+- **Eval voce**: casi realistici a voce, report archiviato.
+
+**Cosa NON entra:** esecuzione di scritture a voce (mai); barge-in / full-duplex; wake word / ascolto continuo; autenticazione vocale (art. 9 GDPR); framework di orchestrazione (LiveKit/Pipecat) — solo se il glue custom fallisce alla prova, con nuovo permesso-dipendenze; animazione oltre l'orb nativo (rifinitura, non requisito).
+
+**Criteri di done (verificabili da te):**
+- [ ] Chiedi a voce "che scadenze ho questo mese?": la risposta a voce corrisponde a ciò che vedi in dashboard.
+- [ ] Detti "prepara una nuova pratica per Mario Rossi…": JARVIS fa il **read-back** dei campi chiave e mette la proposta **in coda**; sul database non cambia nulla.
+- [ ] Apri la coda, vedi il **diff** della proposta e la approvi/rifiuti una per una; l'esito è in audit log.
+- [ ] Provi a far **eseguire** una modifica solo a voce: risponde che l'approvazione va fatta a video, non la esegue.
+- [ ] La latenza reale per turno è sotto la soglia; l'orb reagisce alla voce.
+
+**Rischi principali:** RAM al filo col 27B (mitigato: on-demand + misura, tenendo conto anche di bge-m3 di S9); gap aspettative "Iron Man" (mitigato: pagina firmata, niente full-duplex); rischio di ritardare il go-live (mitigato: non è un blocker — se non pronto, slitta a inizio Fase 2); sicurezza stradale nell'uso in auto (mitigato: risposte brevi, nessuna interazione visiva in movimento).
 
 ---
 
@@ -265,6 +307,34 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 - [ ] Su una pratica con ospite extra-UE compare il compito "Comunicazione Questura entro 48h"; su una locazione turistica compare Alloggiati Web per tutti gli ospiti; se la nazionalità manca, l'app la chiede.
 
 **Rischi principali:** corpus di documenti reali difficile da raccogliere (privacy: solo con consenso o anonimizzati); automation bias degli operatori (la frizione del form è voluta, non va "resa comoda"); errori residui OCR su documenti fotografati male.
+
+---
+
+## S-Mob — Versione mobile (PWA) e accesso remoto Tailscale *(pre-go-live)*
+
+**Obiettivo (una riga):** dal telefono del Proprietario si usa il gestionale ovunque, in sicurezza, tramite Tailscale — stessa app, resa responsive e installabile.
+
+> **Collocazione:** dopo S7 e **prima del go-live S8** (decisione utente + Consiglio C9). Il setup HTTPS via `tailscale cert`/`serve` è **prerequisito** e va anticipato (serve anche a PWA e microfono). Riferimenti: ADR-55, ADR-56, ADR-57, ADR-58; architettura §10.
+
+**Cosa entra:**
+- **Prototipo in Claude Design (prima del codice UI):** adattamento responsive delle schermate chiave sul telefono (liste, form, dashboard, anteprima), seguendo la checklist Design di `REGOLE.md` (una azione primaria per schermata, target touch ≥44px).
+- CSS responsive sui template esistenti + **manifest PWA** installabile; service worker che cachea **solo asset statici**, mai dati clienti. Nessuna app nativa.
+- **HTTPS via `tailscale cert`/`serve`** (tailnet-only); app in bind solo su `localhost` + `100.x`.
+- **Hardening tailnet:** ACL default-deny (solo il nodo-telefono del Proprietario → porta HTTPS), device approval, Tailnet Lock, MFA, key expiry; Funnel/exit-node/port-forwarding vietati.
+- **Login + ruoli sopra la VPN** (essere sul tailnet non basta); **audit di ogni accesso remoto** con identità del nodo + alert su nodo nuovo.
+- **Runbook telefono perso/rubato** scritto e **provato una volta** (revoca nodo, invalidazione sessioni, rotazione password, verifica audit; art. 33 GDPR 72h).
+- Accorgimenti mobile: PDF con bottone "Apri/Scarica" nativo accanto a PDF.js; upload foto documenti con fotocamera nativa (`input file capture`) + ricompressione server-side; tabelle in scroll orizzontale nel contenitore.
+
+**Cosa NON entra:** app nativa iOS/Android (mai); **modalità Chiamata vocale** (è S6-bis); dati clienti persistiti sul telefono; Web Push (al più opzionale, payload generico — ADR-62); esposizione del Mac a Internet pubblico.
+
+**Criteri di done (verificabili da te):**
+- [ ] Dal tuo telefono connesso a Tailscale apri l'app e fai login: funziona come da desktop, leggibile a una mano.
+- [ ] Da un telefono/dispositivo **non autorizzato** sul tailnet non raggiungi nulla (ACL default-deny).
+- [ ] Installi l'app come icona sulla home (PWA) e si apre a schermo intero.
+- [ ] Generi un documento e lo apri/scarichi dal telefono; carichi la foto di un documento dalla fotocamera.
+- [ ] Provi il runbook furto: revochi il nodo dalla console Tailscale e da quel telefono non entri più; le sessioni risultano invalidate.
+
+**Rischi principali:** dipendenza dal control-plane Tailscale (mitigato: deroga dichiarata ADR-56 + DPA + Headscale come exit documentata); PDF.js pesante su file grandi (mitigato: bottone nativo); microfono iOS capriccioso (rimandato a S6-bis, che lo verifica); tentazione di aprire porte sul router (vietato: solo Tailscale).
 
 ---
 

@@ -1,61 +1,47 @@
 # HANDOFF — Riassunto di chiusura sessione
 
 ## 1. Data e numero sessione
-
-13/07/2026 — **Sessione 2 (JARVIS personale: consiglio C8 + ricerche hardware/engine)**, eseguita in Claude Code (ambiente remoto, branch di lavoro `claude/regole-summary-f2y0pj`). La sessione 1 (Fondamenta) è chiusa e fusa in `main` con la PR #1.
+14/07/2026 — **Sessione di progettazione** (pre-sprint), eseguita in Claude Code (ambiente remoto, branch `claude/regole-summary-vcxi65`). Tenuti due Consigli LLM: **C9** e **C10**.
 
 ## 2. Stato attuale del progetto (una riga)
+Progettazione consolidata: **70 ADR** approvati (C1–C10), architettura e roadmap aggiornate; **nessuna riga di codice ancora scritta** (Sprint S0 non iniziato). Lavoro su branch `claude/regole-summary-vcxi65`, **PR aperta verso `main`** (da fondere).
 
-Progettazione estesa e consolidata: JARVIS come assistente personale del Proprietario è ora normato (ADR-50…54, sprint S9/S10 dopo il go-live); resta aperta **una sola decisione: quale Mac comprare** (prima di S6), più il setup fisico sul Mac di sviluppo ereditato dalla sessione 1.
+## 3. Cosa è stato fatto in questa sessione (con i file)
+- **Due Consigli LLM** via skill `llm-council` (advisor/Chairman/Progettista su **Fable 5**, ricerca web con fonti; certificazione superata — C9: 82 citazioni anonime, C10: 161):
+  - **C9** — modalità Chiamata vocale di JARVIS + **versione mobile** + **Tailscale** + valutazione di 5 tool GitHub (databasement, bklit-ui, anime.js, NVIDIA/personaplex, livekit/agents).
+  - **C10** — **auto-tagging dei moduli importati** + **dizionario canonico** dei tag (auto-compilazione).
+- Record in `08_VERBALI_CONSIGLI/`: `C9_verdetto.md`, `R7_chiamata_mobile_brief.md`, `C10_verdetto.md`, `R8_autocompilazione_brief.md`; indice `LEGGIMI_VERBALI.md` aggiornato.
+- **ADR recepiti** in `03_DECISIONI_CONSIGLIO.md`: **ADR-55…63** (C9) e **ADR-64…70** (C10), indice e tabella riassuntiva aggiornati.
+- `04_ARCHITETTURA.md`: deroga n.2 Tailscale; §4.8 Chiamata; §10 (mobile PWA, hardening Tailscale, stack voce, HITL a voce); §3.15 CampoCanonico (Dizionario); §5.1 templatizzazione assistita; righe stack; range ADR→70; verifiche.
+- `05_ROADMAP_SPRINT.md`: sprint **S-Mob** (mobile PWA, pre-go-live), **S6-bis** (Chiamata, subito dopo S6), **S2** esteso (templatizzazione + dizionario + invariante), ambienti e verifiche esterne C9/C10.
 
-## 3. Cosa è stato fatto in questa sessione
-
-- **PR #1 fusa in `main`** (harness, consiglio C7, skill, scaffold S0); branch di lavoro riallineato.
-- **Richieste del proprietario su JARVIS** (accesso esclusivo, "secondo cervello", auto-skill, automazioni con n8n, "Graphify") passate al metodo completo: 2 brief di ricerca fattuale (**R3** memoria, **R4** automazioni) → **Consiglio C8** via skill llm-council (5 advisor → peer review anonima → chairman) → verdetto applicato integralmente con approvazione dell'utente.
-- **Nuovi ADR-50…54** nel file `03` + verbale `C8_verdetto.md` + nuove sezioni **§4.6 (memoria)** e **§4.7 (automazioni)** + entità **Ricordo/Automazione** nel `04` + **sprint S9 "JARVIS personale" e S10 "Trigger email"** (Fase 2, dopo il go-live) nel `05`.
-- **Domande su engine DS4 e hardware**: 2 brief di ricerca (**R5** DS4/antirez, **R6** hardware 2026 con prezzi verificati) + consiglio ridotto presentato all'utente.
-- **Commit** (tutti pushati): `4eafe63` (R3/R4), `f3f2eeb` (pacchetto C8), `9226ede` (R5/R6) + questo handoff.
-
-## 4. Decisioni prese e perché
-
-- **ADR-50**: chat JARVIS solo per il ruolo Proprietario; coda «Da approvare» separata; **un solo approvatore competente per tipo di azione** (la doppia firma segretaria+proprietario è bocciata: rubber-stamping).
-- **ADR-51**: memoria «Cose da ricordare» = tabella in SQLite + FTS5 + sqlite-vec + bge-m3 via Ollama (Graphiti/Neo4j e mem0 scartati, evidenze R3); ricordi solo da dettatura confermata (anti-avvelenamento); oblio = cancellazione fisica.
-- **ADR-52**: le skill si chiamano **«Procedure»** in UI (mai "skill"); v1 solo su richiesta esplicita; approva solo il Proprietario; mai testo da contenuti esterni.
-- **ADR-53**: motore automazioni **interno** a catalogo chiuso QUANDO/SE/ALLORA (n8n scartato all'unanimità, evidenze R4); dry-run, nasce disattivata, anti-tempesta, tutto in AuditLog.
-- **ADR-54**: trigger email solo in S10, con difese architetturali anti prompt-injection (allowlist mittenti, Keychain, sintesi senza tool, HITL su ogni azione).
-- **DS4 (antirez) verificato e NON adottato** (brief R5): esiste davvero ma è mono-modello (DeepSeek V4 Flash 284B), richiede 96–128 GB, è beta senza release, bug che blocca il Mac. **Si resta su Ollama**; in S6 usare le **quant Unsloth Dynamic 2.0** del modello scelto (stessa idea di quantizzazione, matura, zero rischio). Rivalutare DS4 tra 12+ mesi.
+## 4. Decisioni prese e perché (breve)
+- **5 tool GitHub: nessuno adottato.** personaplex richiede GPU NVIDIA (no Apple Silicon); livekit è il migliore dei due ma è un secondo servizio sempre acceso → solo riferimento di pattern; databasement/bklit-ui incompatibili/ridondanti; anime.js non necessario (orb/waveform nativi).
+- **Modalità Chiamata: sì**; a voce solo lettura + dettatura proposte in coda, **scritture mai a voce** (HITL a video, ADR-07). Promossa a **canale di primo piano subito dopo S6** (S6-bis, decisione utente), non "Fase 3".
+- **Mobile = PWA responsive** sullo stesso FastAPI via **Tailscale** (trasporto, non autenticazione; login+ruoli restano); deroga dichiarata come per l'SMTP.
+- **Auto-compilazione moduli: idea buona, con correzione chiave** — **l'LLM non scrive mai nel file**: rilevamento/inserimento tag **deterministici**, **invariante di non-alterazione** bloccante, **dizionario canonico** a oggetti (ruolo-binding, campi atomici), LLM solo **classificatore** da S6 e condizionale; nessun file dell'agenzia sul cloud.
 
 ## 5. Criterio di accettazione della task
+**Rispettato.** La richiesta (valutare tool e idee con `/llm-council` e recepire se approvato) è stata soddisfatta: Consigli tenuti e certificati, decisioni **approvate dall'utente** e scritte negli ADR-55…70. Nessun codice (fase di progettazione).
 
-**Rispettato**: tutte le idee del proprietario sono passate dal consiglio (C8) come richiesto, con verdetto motivato (accolte/ridimensionate/scartate), formalizzate in ADR e roadmap, committate e pushate. Le due domande (DS4, hardware) hanno brief con fonti e raccomandazione; la scelta hardware resta volutamente all'utente.
+## 6. Problemi aperti (rimandati / da verificare)
+- **Correzione già applicata in questa sessione:** i due brief di ricerca erano stati creati come R5/R6 duplicando la numerazione della sessione 2 (R5_inference, R6_hardware) → **rinominati in `R7`/`R8`** e riferimenti aggiornati ovunque.
+- La **bozza operativa del Progettista di C10** non è stata generata (limite di sessione temporaneo); il verdetto del Chairman è completo e autosufficiente → non bloccante.
+- **Verifiche esterne da calendarizzare:** C9 → DPA Tailscale + registro trattamenti, DPIA leggera (voce+remoto+AI), licenza voce TTS, retention trascrizioni, parere art. 173 CdS; C10 → gate S2 esteso (recall/precision parser + invariante), gate S6 condizionale (LLM-assist), allineamento dizionario alle release RLI. Restano valide le verifiche preesistenti (modello LLM, l.431/98, bake-off OCR, AML, DPIA).
+- **Ereditata dalla sessione 2:** decisione **quale Mac di produzione comprare** prima di S6 (brief `R6_hardware_brief.md`).
+- **Walking skeleton** (RAM/latenza voce sul Mac Mini) resta gate tecnico prima di costruire la Chiamata (S6-bis).
 
-## 6. Problemi aperti
+## 7. PROSSIMO PASSO (azione esatta)
+1. **Far revisionare e fondere la PR** del branch `claude/regole-summary-vcxi65` in `main` (porta in `main` la progettazione C9/C10).
+2. Poi, in una **sessione nuova** di Code: frase rituale di apertura + prompt `06_PROMPT_SPRINT/S0_fondamenta.md` per avviare lo **Sprint S0 — Fondamenta** (repo/regole/ambiente dev/astrazione LLM/eval skeleton/bozza backup).
+3. In parallelo, **calendarizzare** le verifiche esterne del punto 6 e la **decisione hardware**.
 
-- ⚠️ **DECISIONE APERTA — quale Mac di produzione comprare (entro l'inizio di S6, ADR-48).** Il piano scritto ("Mini M4 base 24 GB") è superato: troppo lento per il 27B (~4–5 tok/s) e tagli RAM ritirati dal listino (crisi DRAM 2026). Candidate (prezzi Italia verificati, brief R6):
-  - **A** — Mini M4 Pro 24 GB, 1.929 € (RAM al pelo, niente crescita)
-  - **B** — Mini M4 Pro 48 GB, ~2.400–2.600 € ⭐ raccomandata (27B/32B veloci, margine per S9/S10)
-  - **C** — Studio M3 Ultra 96 GB, 6.399 € (70B+/120B; ordinare 9–10 settimane prima)
-  Alla scelta: aggiornare `04` §4.1 + nota datata sotto ADR-48 (se si esce dal perimetro "Mac Mini", convocare il consiglio).
-- **PR verso `main`** con il lavoro di questa sessione: aperta a fine sessione (vedi PROSSIMO PASSO) — da approvare e fondere su GitHub.
-- Ereditati dalla sessione 1: **setup sul Mac di sviluppo** (comandi in §8); **provider cloud di sviluppo da scegliere** (chiave in `config.toml`, mai su Git); bozza DPIA prima di S3; conferma AML su ADR-49 in S5.
-- I prompt di sprint `S9`/`S10` in `06_PROMPT_SPRINT/` si scriveranno quando la Fase 2 si avvicina.
-- Nota S6: pagina «cosa NON fa JARVIS» da approvare per iscritto + validatore del prototipo chat = Proprietario (verbale C8).
-
-## 7. PROSSIMO PASSO
-
-1. **Fondere la PR** di questa sessione su GitHub (branch `claude/regole-summary-f2y0pj` → `main`).
-2. **Decidere il Mac** (A/B/C, dati nel brief `08_VERBALI_CONSIGLI/R6_hardware_brief.md`) — serve prima di S6, ma non blocca S1–S5.
-3. **Setup sul Mac di sviluppo** (comandi in §8) per chiudere davvero S0.
-4. Aprire la **sessione S1** con la frase rituale + `06_PROMPT_SPRINT/S1_core_gestionale.md`.
-
-## 8. Comandi da eseguire per riprendere (sul Mac, dalla cartella del progetto)
-
+## 8. Comandi per riprendere (dopo il merge della PR)
 ```bash
-git pull
-bash setup/installa_mac.sh
-bash setup/crea_cartella_dati.sh
-cp config.example.toml config.toml   # poi apri config.toml e compila i 3 valori
-./.venv/bin/python llm/test_connessione.py
-./.venv/bin/python evals/esegui_evals.py
-bash scripts/backup_db.sh            # da provare quando esisterà il db (S1)
+cd ~/Documenti/gestionale-immobiliare
+git checkout main
+git pull origin main
+# poi, in una sessione NUOVA di Code, la frase rituale:
+#   "Leggi REGOLE.md e riassumilo in 5 righe prima di toccare codice."
+# quindi incollare il prompt di 06_PROMPT_SPRINT/S0_fondamenta.md
 ```

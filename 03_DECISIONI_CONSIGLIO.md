@@ -263,6 +263,80 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ---
 
+## Consiglio C9 — Modalità Chiamata JARVIS, versione mobile e accesso via Tailscale
+
+**Posta in gioco:** la richiesta del Proprietario di una "modalità Chiamata" vocale in tempo reale per JARVIS (uso a mani libere, es. alla guida) e la valutazione di 5 tool GitHub proposti, nella cornice — **decisa dall'utente** — di una **versione mobile completa del gestionale** usata dal telefono ovunque tramite **Tailscale**. Evidenze: brief `R7_chiamata_mobile_brief.md`. Verbale integrale (con certificazione del meccanismo del consiglio e bozza di progettazione di Fable 5 in appendice): `08_VERBALI_CONSIGLI/C9_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-55 — Mobile = PWA responsive sullo stesso FastAPI (pre-go-live).** Nessuna app nativa iOS/Android: un secondo codebase senza benefici per un utente principale su rete privata. Web responsive + manifest PWA installabile sulla stessa app server-rendered; HTTPS solo via `tailscale cert`/`tailscale serve` sul tailnet; service worker che cachea **solo asset statici, mai dati clienti offline**. Unica fonte design resta la checklist impeccable anche su mobile (una sola azione primaria per schermata, target touch ≥44px). PDF sempre con bottone "Apri/Scarica" nativo accanto a PDF.js; upload foto documenti via `<input type=file accept=image/* capture=environment>` nativo con ricompressione server-side. **Collocazione: sprint dedicato pre-go-live** (la versione mobile è cornice decisa dall'utente, quindi prodotto base — la regola del Parcheggio ADR-03 vincola la Fase 2 di JARVIS, non il gestionale).
+- **ADR-56 — Deroga dichiarata n.2 al vincolo tutto-locale: control-plane Tailscale.** Come per l'SMTP (deroga n.1), l'accesso remoto via Tailscale introduce un terzo che tratta **metadati** (nodi, topologia, chiavi, relay DERP per il traffico che resta cifrato end-to-end WireGuard) ma **mai i dati**. Richiede: DPA Tailscale sottoscritto, aggiornamento del registro dei trattamenti, Headscale documentata come exit strategy **non** implementata.
+- **ADR-57 — Hardening del tailnet.** ACL **default-deny** (solo il nodo-telefono del Proprietario raggiunge la porta HTTPS dell'app sul Mac Mini), device approval, Tailnet Lock, MFA sull'account Tailscale, key expiry; **Funnel/exit-node/subnet-routing vietati, zero port-forwarding**; app in bind solo su `localhost` + interfaccia `100.x`. **Tailscale è trasporto, mai autenticazione:** login applicativo e ruoli (ADR-08, ADR-50) restano obbligatori sopra la VPN. Ogni accesso remoto in AuditLog con identità del nodo tailnet + alert email al login da nodo mai visto.
+- **ADR-58 — Runbook telefono perso/rubato.** Procedura scritta e **testata una volta davvero** (come il restore test ADR-06): revoca del nodo Tailscale, invalidazione di tutte le sessioni app, rotazione password, verifica dell'audit; valutazione data-breach **art. 33 GDPR entro 72h**. Obbligatori: blocco schermo biometrico sul telefono, sessioni mobili brevi con re-login. Rischio residuo basso perché il telefono non contiene dati (è solo un client).
+- **ADR-59 — Perimetro della modalità Chiamata.** *(Collocazione aggiornata su decisione dell'utente: canale di primo piano di JARVIS, sprint **S6-bis subito dopo S6**, non "Fase 3" come nella prima raccomandazione del verbale C9; non blocca il go-live.)* A voce **solo** Q&A read-only + **dettatura di proposte che finiscono in coda**; l'esecuzione di scritture a voce è **vietata sempre** (un "sì" alla guida è approvazione cieca, vietata da ADR-07). Gate **nel codice**: il token di approvazione è generabile solo dalla UI dopo il render del diff a video, **non forgiabile dall'LLM**. Niente pulsante "approva tutto", diff mostrato voce per voce. Interazione **half-duplex push-to-talk**, niente barge-in in v1; risposte max 2 frasi by design. **Precondizione bloccante:** walking skeleton (~1 settimana) che misuri latenza end-to-end su 4G reale (incluso relay DERP) e RAM a regime con conversazione lunga — soglia **4 s/turno**, altrimenti aspettative rifirmate o rinuncia. Pagina "cosa NON fa JARVIS" aggiornata e **rifirmata prima di costruire**.
+- **ADR-60 — Il canale vocale è input NON fidato.** La trascrizione è trattata come le email IMAP di S10 (**contesto, mai istruzioni**), loggata integralmente nell'evidence pack; **read-back verbale** dei campi chiave prima di accodare una proposta; **nessun audio persistito**, solo trascrizioni con retention definita; attivazione sempre esplicita push-to-talk (**mai ascolto continuo/wake word** — tutela dei terzi in auto); **divieto di autenticazione vocale** (dato biometrico, art. 9 GDPR).
+- **ADR-61 — Stack voce locale "noioso".** Glue custom minimale **dentro** FastAPI (un endpoint WebSocket), **nessun framework di orchestrazione né secondo servizio sempre acceso**; processi voce avviati **on-demand** all'apertura della Chiamata e terminati alla chiusura. STT = **whisper.cpp** large-v3-turbo con Core ML/ANE (fallback whisper medium quantizzato); LLM = **Ollama 27B già residente**; TTS = deciso con **demo audio al Proprietario** nell'ordine: `say`/AVSpeech nativo → **Piper** `it_IT-paola` via subprocess (GPL-3.0 **mai linkata**, licenza della voce da verificare) → **Kokoro-82M** (Apache-2.0). **XTTS v2 VIETATO** (licenza CPML non commerciale). Qualsiasi framework (anche Pipecat/LiveKit) solo dopo fallimento documentato del glue custom e nuovo permesso-dipendenze.
+- **ADR-62 — Notifiche mobile.** Canale primario resta l'**email SMTP** (deroga n.1). Eventuale **Web Push su iOS** solo con PWA installata e **payload generico privo di dati** ("hai una proposta in attesa"), perché transita da APNs (cloud Apple).
+- **ADR-63 — UI voce nativa, zero dipendenze.** Orb "Jarvis che parla" e waveform della voce in ingresso con **Web Audio AnalyserNode + Canvas 2D + CSS custom property** (~50 righe). `bklit-ui` e `personaplex` scartati; `anime.js`/`siriwave` rivalutabili solo con permesso esplicito nuove dipendenze; l'animazione è **rifinitura finale, non requisito** (è inutile proprio nello scenario — la guida — che la motiva).
+
+### Alternative scartate
+
+- **NVIDIA/personaplex** — modello speech-to-speech monolitico (base Moshi) che richiede GPU NVIDIA/CUDA, non gira su Apple Silicon (solo port community non mantenuti), non collega Ollama/whisper/Piper, non sta in RAM accanto al 27B; pesi sotto NVIDIA Open Model License. Viola hardware, architettura, RAM e igiene di licenza.
+- **livekit/agents come adozione** — dei due proposti è il migliore (Apache-2.0, Apple Silicon, plugin locali: **batte personaplex senza discussione**), ma impone un media server WebRTC **sempre acceso** per un solo utente vocale. Tenuto **solo come riferimento architetturale**: i pattern (approval gate, blocking HITL, turn detection) si copiano nel glue custom.
+- **David-Crty/databasement** — web app Laravel/Docker per flotte di DB eterogenei: per un singolo SQLite locale duplica ADR-06 e aggiunge una superficie d'attacco. (Per RPO di secondi l'unico incremento sensato sarebbe **Litestream**, Apache-2.0, con ADR separato — non databasement.)
+- **bklit-ui** — registry di componenti *chart* per React/Next via shadcn: doppio mismatch (frontend server-rendered senza React; sono grafici, non orb/waveform).
+- **anime.js in v1** — libreria sana (MIT, ~10KB) ma non necessaria: waveform/orb si fanno nativi.
+- **XTTS v2 / Coqui** — licenza CPML non commerciale, azienda chiusa: nessuno da cui acquistare licenza.
+- **App nativa iOS/Android** — secondo codebase + firma + distribuzione senza benefici per il caso d'uso; contro il vincolo di semplicità.
+- **Scritture eseguite a voce / conferma vocale delle scritture** — approvazione cieca, vietata da ADR-07; il gate sta nel codice, non nella buona volontà.
+- **Full-duplex "Iron Man" / ascolto continuo / wake word** — fragilità tecnica non necessaria + rischio privacy sui terzi; da scrivere nella pagina "cosa NON fa JARVIS".
+- **Headscale/NetBird self-hosted** — più manutenzione e un endpoint da esporre; per questa scala la scelta noiosa è Tailscale SaaS + Tailnet Lock, con Headscale come uscita documentata.
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **DPA Tailscale** sottoscritto + aggiornamento del **registro dei trattamenti** per i metadati del control-plane (accountability GDPR) — prima dell'accesso remoto in produzione.
+- ⚠️ **DPIA "leggera" (art. 35 GDPR)** sulla combinazione voce + accesso remoto + AI (probabilmente sotto soglia d'obbligo per 2-5 utenti, ma da istruire).
+- ⚠️ **Verifica licenza della singola voce TTS** adottata (es. Piper `it_IT-paola`) e conferma legale dell'uso interno server-side di software GPL-3.0 non distribuito.
+- **Retention delle trascrizioni vocali** nell'audit log, validata con il consulente privacy.
+- ⚠️ **Parere su art. 173 CdS / responsabilità civile** per la policy d'uso alla guida ("il sistema non richiede mai sguardo o tocco in movimento"), inclusa nella pagina "cosa NON fa JARVIS" da far rifirmare al Proprietario.
+- **Walking skeleton di misura** (latenza 4G/DERP, RAM a regime) come gate tecnico prima di costruire la Chiamata (ADR-59).
+
+---
+
+## Consiglio C10 — Auto-tagging dei moduli importati e Dizionario dei tag
+
+**Posta in gioco:** trasformare in modo affidabile un modulo importato (doc/docx/odt) in un template con segnaposti e alimentare l'auto-compilazione dai dati canonici, **senza che l'LLM alteri il testo legale** (ADR-02). Evidenze: brief `R8_autocompilazione_brief.md`. Verbale integrale: `08_VERBALI_CONSIGLI/C10_verdetto.md`.
+
+### Decisioni adottate
+
+- **ADR-64 — Dizionario dei Campi (vocabolario canonico).** Il dizionario è un *data dictionary* versionato in Git, generato come **flattening deterministico del modello dati canonico** (Soggetto, Immobile, ContrattoLocazione…) e ancorato al lessico **RLI** dell'Agenzia delle Entrate (foglio, particella, subalterno, rendita, tipologia contratto). Voci con stato **proposto/approvato/deprecato**, **steward umano** (lo stesso ruolo che approva i template, ADR-18), changelog datato, **deprecazione con alias di migrazione, mai cancellazione** (i template depositati che usano il vecchio nome restano validi). **Nessun placeholder può esistere fuori dal dizionario approvato.**
+- **ADR-65 — Ruolo come binding, granularità atomica.** Nei template il **ruolo** (locatore, conduttore, garante…) è un **binding a oggetti** — `{{ locatore.nome }}`, `{{ conduttore.cognome }}` — **mai** un prefisso fuso nel nome del tag (`nome_locatore`): così il drift `{{nome_locatore}}`/`{{locatore_nome}}` è **irrappresentabile per costruzione**. Attributi **atomici** (nome/cognome; indirizzo scomposto in via/civico/cap/comune/provincia; date tipizzate; importi numerici). Le ricomposizioni (nome completo, **importo in lettere**, indirizzo su una riga) sono **esclusivamente filtri Python deterministici** approvati e testati, **mai** campi duplicati e **mai** output dell'LLM. Le "voci composte" nei menu UI sono solo scorciatoie che si **espandono in tag atomici visibili nel diff** (mai tag compositi persistiti).
+- **ADR-66 — Aggancio obbligatorio tag→dato.** Ogni voce del dizionario ha **obbligatoriamente** un binding a un campo del modello dati canonico o una derivazione dichiarata (filtro/funzione); i **tag orfani sono rifiutati al salvataggio** del template (lint nel dry-run ADR-16), non a valle. Metadato di **obbligatorietà per-tag-per-template** (obbligatorio/opzionale/condizionale) per rendere preciso il blocco ADR-21 (blocca sui campi richiesti da *quel* modulo, non su tutto il dizionario).
+- **ADR-67 — Templatizzazione assistita deterministica.** Il **rilevamento** dei campi vuoti è **deterministico** (lxml su `document.xml`: content control `w:sdt/showingPlcHdr`, legacy `FORMTEXT`/`w:ffData`, `MERGEFIELD`, tab leader, celle vuote gestendo `gridSpan`/`vMerge`; regex sul **testo di paragrafo aggregato** per underscore/puntini; `odfdo` per ODT). L'**inserimento** dei placeholder è **esclusivamente codice deterministico su una COPIA**, tag in **singolo run**. Il wizard impone un **contatore di copertura con motivo dichiarato** per ogni candidato scartato (i falsi negativi non muoiono in silenzio). Il template taggato **nasce BOZZA** (ADR-17). *Insight del consiglio: un campo vuoto non rilevato è invisibile per sempre (passa ADR-16/21 come testo normale) → il recall del parser è un requisito di **sicurezza**, non delegabile all'LLM.*
+- **ADR-68 — Invariante di non-alterazione (bloccante).** Al salvataggio di un template templatizzato, il **testo estratto dall'originale coi vuoti mascherati** deve essere **identico carattere-per-carattere** al testo del template coi placeholder mascherati; **diff non vuoto = salvataggio RIFIUTATO** (non warning). Render di prova con dati fittizi + verifica di integrità del DOCX come controllo secondario. Se il **testo fisso differisce dal modello depositato** → flag automatico **«richiede ri-deposito CCIAA»**. **Audit trail di templatizzazione** (originale+hash, candidati con evidenza XML, mappa campo→tag, report diff, approvatore) agganciato alla versione template (ADR-18); **golden test in CI** per ogni versione.
+- **ADR-69 — LLM solo classificatore su vocabolario chiuso.** L'LLM (locale, **da S6**) riceve **solo il candidato** con etichetta e contesto locale, **MAI il file**; emette **solo un tag dall'enum** del dizionario approvato (constrained decoding, *reasoning-then-constrain*, opzione obbligatoria `NESSUNA_CORRISPONDENZA`) **oppure** una proposta di tag nuovo; **ogni proposta richiede approvazione umana**; l'LLM **non ha mai accesso in scrittura** a file o dizionario. Si costruisce **solo** se il matching deterministico etichetta→tag di S2 resta sotto ~85-90% (gate S6).
+- **ADR-70 — Divieto cloud assoluto per i file dell'agenzia.** **Nessun file** proveniente dall'agenzia (inclusi i moduli "vuoti": metadati autore/revisioni/track-changes, residui di compilazioni, know-how dei modelli depositati) lascia il Mac; per sviluppo e test su cloud si usano **esclusivamente moduli sintetici ricreati ex novo**. **Nessuna eccezione** né procedura di sanificazione caso-per-caso.
+
+### Alternative scartate
+
+- **LLM che riscrive il DOCX / inserisce i tag nel file** — rompe i run del documento e può alterare in silenzio il testo legale (ADR-02); l'LLM al più classifica, il file lo scrive il codice.
+- **LLM che salva da solo nuovi tag nel dizionario** — drift; l'LLM propone, un umano approva.
+- **Lista piatta di stringhe di tag** (formulazione iniziale dell'utente) — sposta il drift un livello più su invece di eliminarlo; il binding a oggetti lo rende irrisolvibile alla radice a parità di sforzo.
+- **Rilevamento dei campi vuoti puro-LLM** — non deterministico/riproducibile e cieco proprio dove il fallimento è fatale (campo non rilevato = riga bianca invisibile ad ADR-16/21).
+- **Importo in lettere come secondo campo memorizzato** — è logica di calcolo (ADR-02) e due campi = due possibilità di discordanza; si deriva con filtro deterministico dal valore numerico.
+- **Sanificazione caso-per-caso dei moduli reali verso il cloud** — reintroduce il giudizio caso-per-caso che il divieto assoluto elimina («nel dubbio, no»).
+- **Add-in dentro Word (stile Afterpattern) / docassemble come componente** — fragili o fuori dal gestionale; si riusa solo il *pattern*, non il prodotto.
+- **Tagging manuale in Word senza wizard** — un non tecnico produce run spezzati e template rotti, e si perde l'audit trail.
+
+### Punti aperti / verifiche esterne obbligatorie
+
+- ⚠️ **Gate pre-codice S2 esteso** sui 5-10 modelli reali depositati: oltre a conversione/font/dry-run/confronto stampa-anteprima, misurare **recall del parser** (requisito di sicurezza), **precision** (falsi candidati tollerabili per la segretaria), **quota di pre-match deterministico** etichetta→tag, ed **esito dell'invariante di non-alterazione** su tutti.
+- **Test di usabilità con la segretaria** sul wizard S2: da modulo grezzo a template bozza **senza assistenza tecnica** (tempo e frizioni a verbale).
+- **Gate S6 condizionale**: costruire l'LLM-assist solo se i log di S2 mostrano risoluzione deterministica < ~85-90%; validare il classificatore 27B su un set etichettato interno (**niente benchmark pubblici** per legale italiano), con conferma umana sempre.
+- **Allineamento del dizionario alle release RLI** (Agenzia delle Entrate) via governance ADR-64.
+
+---
+
 ## Tabella riassuntiva — Richiesta originale del cliente → decisione finale
 
 | # | Richiesta originale del cliente | Decisione finale | ADR |
@@ -279,6 +353,10 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | 10 | **Privacy auto-compilata** | Nessuna raccolta automatica del consenso: flusso **genera → stampa → firma → scansiona**; la scansione è **record immutabile di consenso** (soggetto, versione modulo, data, hash); cambio informativa → consensi scaduti e **ri-firma obbligatoria**. | ADR-20 |
 | 11 | **API cloud in sviluppo** | Sì in sviluppo con **soli dati sintetici/anonimizzati** (provider configurabile via `base_url`/`model`); produzione su **Ollama locale**; eval suite rieseguita sul modello locale **da S6** (prima esecuzione = criterio di done di S6). | ADR-05, ADR-48 |
 | 12 | **Auto-skill JARVIS** | **Libreria curata**: JARVIS propone skill in Markdown, attivabili **solo con approvazione umana + versioning Git**; **mai** codice auto-generato eseguito sul server. | ADR-04 |
+| 13 | **Versione mobile** | **PWA responsive** sulla stessa app FastAPI (niente app nativa), usata dal telefono via **Tailscale**; sprint dedicato **pre-go-live**. | ADR-55, ADR-56, ADR-57 |
+| 14 | **JARVIS "come Iron Man" (chiamata vocale)** | **Modalità Chiamata, canale di primo piano subito dopo S6**: a voce solo Q&A read-only + dettatura di proposte in coda; **scritture mai a voce** (HITL a video); stack voce **tutto locale** (whisper.cpp + Ollama 27B + TTS italiano), on-demand. | ADR-59, ADR-60, ADR-61 |
+| 15 | **Tool GitHub proposti** | **Nessuno adottato**: databasement, bklit-ui, personaplex e anime.js (v1) scartati; livekit/agents solo come **riferimento di pattern**; UI voce **nativa**. | ADR-63 |
+| 16 | **Auto-compilazione moduli / Archivio Moduli** | **Templatizzazione deterministica** all'import (uno script rileva i campi vuoti e inserisce i tag su una copia, con controllo **bloccante** che il testo legale resti intatto) + **dizionario canonico** a oggetti (ruolo-binding, campi atomici); l'LLM (da S6) al più **suggerisce** il tag, l'umano conferma; poi docxtpl riempie dai dati (ADR-14). | ADR-64 … ADR-70 |
 
 ---
 
@@ -294,5 +372,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 | ADR-39 … ADR-46 | C6 | Movimenti automatici, ruolo Proprietario, diciture compliance, retention |
 | ADR-47 … ADR-49 | C7 | Ambiente di sviluppo (Code), eval locale da S6 con Mac Mini, retention differenziata immagini |
 | ADR-50 … ADR-54 | C8 | JARVIS solo Proprietario, memoria «Cose da ricordare», Procedure, automazioni interne, trigger email |
+| ADR-55 … ADR-63 | C9 | Mobile PWA, deroga/hardening Tailscale, runbook furto, modalità Chiamata JARVIS, voce = input non fidato, stack voce locale, notifiche, UI voce nativa |
+| ADR-64 … ADR-70 | C10 | Dizionario canonico dei tag, ruolo-binding e granularità atomica, aggancio obbligatorio tag→dato, templatizzazione deterministica, invariante di non-alterazione, LLM solo classificatore, divieto cloud sui file dell'agenzia |
 
 **Prossima modifica a questo registro:** solo tramite nuovo ADR (nuovo numero, mai modifica retroattiva) con motivazione e, se richiesto dai Punti aperti, esito della verifica esterna allegato.
