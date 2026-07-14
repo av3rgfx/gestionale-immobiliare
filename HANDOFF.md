@@ -1,52 +1,51 @@
 # HANDOFF — Riassunto di chiusura sessione
 
 ## 1. Data e numero sessione
-14/07/2026 — **Sprint S0 (completamento residui lato‑repository)**, eseguita in Code in **ambiente remoto/cloud Linux** (non sul Mac dell'utente), branch `claude/regole-summary-krvr30`.
+14/07/2026 — **Sprint S0 (Fondamenta) — chiusura dei residui SUL MAC dell'utente**, eseguita in Code sul MacBook, branch `main`. Questa è la sessione che ha eseguito il runbook macchina‑specifico lasciato in sospeso dalla sessione precedente (che girava in cloud).
 
 ## 2. Stato attuale del progetto (una riga)
-S0 quasi finito: tutto il lavoro **lato‑repository è completato e verificato qui**; restano solo i passi che richiedono il **Mac dell'utente e la sua chiave API** (installazioni, cartella dati reale, test AI reale, eval sul provider vero, backup reale).
+**S0 COMPLETATO:** tutti e 5 i criteri di accettazione sono stati verificati sul Mac (ambiente dev installato, cartella dati creata, test AI in italiano, eval 12/12, backup + ripristino provati). Il vero sviluppo del gestionale inizia con S1.
 
 ## 3. Cosa è stato fatto in questa sessione (con i file)
-- **Verifica sessione 1 (Task 1):** harness completa (`00`–`08` + `06_PROMPT_SPRINT/`), `REGOLE.md`, `CLAUDE.md`, `HANDOFF.md` presenti; `CLAUDE.md` rimanda correttamente a `REGOLE.md`. Nessun file mancante.
-- **Eval portate da 6 a 12 casi (Task 5):** creati `evals/casi/07_ruoli.json`, `08_conferma_umana.json`, `09_backup.json`, `10_scadenza_trigger.json`, `11_determinismo.json`, `12_dati_sintetici.json` (italiano, dati sintetici, ognuno legato a un ADR). Runner verificato in modalità prova: 12/12 casi letti e report generato.
-- **`README.md` ampliato (Task 3):** documenta che tutti i dati vivono in `~/Gestionale/` (con struttura), la configurazione via `config.toml` (segreti fuori da Git), l'avvio sul Mac e la procedura di backup + ripristino di prova.
-- **`scripts/backup_db.sh` completato (Task 6):** aggiunte nell'output le istruzioni del **test di ripristino** su copia di prova.
-- **Pulizia:** `.gitignore` ora ignora `evals/report_*.md` (sono output); rimosso il report vecchio `evals/report_20260713_1708.md` committato per errore.
-- **Verifiche eseguite qui (prove reali):** `requirements.txt` installa in venv pulito (openai 2.45); tutti i `.py` compilano; `provider.py` senza `config.toml` dà l'errore guidato in italiano (nessuna chiave usata); `crea_cartella_dati.sh` crea la struttura attesa; flusso **backup → integrity_check → riapertura con dati** dimostrato con il motore SQLite (equivalente allo script).
-- **Non toccati (già corretti):** `llm/provider.py`, `llm/test_connessione.py`, `evals/esegui_evals.py`, `setup/installa_mac.sh`, `setup/crea_cartella_dati.sh`, `config.example.toml`, `requirements.txt`.
+- **Ambiente di sviluppo (Task 2):** eseguito `setup/installa_mac.sh` → Python **3.12.13** (via Homebrew, il Python di sistema 3.9 resta intatto), **LibreOffice** già presente, **font Liberation** installati (12 file in `~/Library/Fonts/`), virtualenv `.venv` creato con le dipendenze di `requirements.txt` (**openai 2.45.0**).
+- **Cartella dati (Task 3):** eseguito `setup/crea_cartella_dati.sh` → creata `~/Gestionale/` con `templates/`, `documenti/`, `backup/`, `logs/` (il `db.sqlite` nascerà in S1).
+- **Provider LLM (Task 4):** creato `config.toml` da `config.example.toml` (ignorato da Git). Compilato per **Google AI Studio** (endpoint compatibile OpenAI `https://generativelanguage.googleapis.com/v1beta/openai/`, modello `gemini-2.5-flash`); la **chiave l'ha inserita l'utente** direttamente nel file. Eseguito `llm/test_connessione.py` → il modello ha **risposto in italiano** ("Sono un modello linguistico… addestrato da Google").
+- **Eval suite (Task 5):** eseguito `evals/esegui_evals.py` sul **provider vero** → **12/12 casi superati**; report in `evals/report_20260714_2115.md` (ignorato da Git perché output rigenerabile).
+- **Backup (Task 6):** provato `scripts/backup_db.sh` su un **DB di prova con dati sintetici** (tabella `soggetto`, 2 righe finte) → copia consistente in `~/Gestionale/backup/db_20260714_211707.sqlite`, integrità `ok`; eseguito il **test di ripristino** (copia usa‑e‑getta in `/tmp`, `integrity_check` = ok, tabelle e dati ritrovati, copia rimossa).
+- **Chiusura:** aggiornati `HANDOFF.md` (questo file) e `Plan.md` (cruscotto).
 
 ## 4. Decisioni prese e perché (breve)
-- **Sessione in cloud, non sul Mac:** i passi macchina‑specifici (Homebrew/LibreOffice/font, `~/Gestionale/` reale, test con chiave, eval sul provider vero, backup reale) **restano all'utente sul Mac** — la chiave API non entra mai nel cloud (ADR‑05). Segnalato all'utente e approvato prima di procedere (REGOLE §1).
-- **12 casi eval (dentro il range 10–15):** sufficienti per lo skeleton, niente lavoro extra «già che ci siamo» (REGOLE §2).
-- **Report eval fuori da Git:** sono output rigenerabili, non codice (REGOLE §2).
-- **Nessuna riscrittura del codice già funzionante** (provider/test/runner): si tocca solo ciò che serve (REGOLE §2).
-- **Destinazione offsite del backup non ancora scelta:** da decidere insieme quando si prova sul Mac (disco esterno o cloud cifrato), come chiede il prompt.
+- **Provider di sviluppo = Google AI Studio, modello `gemini-2.5-flash`:** scelta dell'utente; l'endpoint è OpenAI‑compatible, quindi funziona con l'astrazione a due parametri `base_url`/`model` senza toccare il codice (ADR‑48). Passare a Ollama locale (da S6) = solo cambio di `config.toml`.
+- **La chiave l'ha inserita l'utente, non Claude:** per policy di sicurezza Claude non scrive chiavi API nei file; ha compilato solo `base_url`/`model` (non segreti) e guidato l'utente a incollare la chiave nel file.
+- **Backup provato con DB di prova sintetico:** il `db.sqlite` reale nasce in S1 e verso il cloud/dischi non deve passare alcun dato reale (ADR‑05/ADR‑06). Il flusso `sqlite3 .backup` → `integrity_check` → riapertura è stato dimostrato per intero.
+- **Destinazione offsite del backup: rinviata ("decido dopo"):** non bloccante per S0; va fissata prima di S3 (quando l'offsite diventa automatico e iniziano i dati veri).
 
 ## 5. Criterio di accettazione della task
-**Parzialmente rispettato.** Rispettato e verificato **tutto ciò che è lato‑repository**: harness completa e `CLAUDE.md`→`REGOLE.md`; eval con 12 casi + report; `scripts/backup_db.sh` con istruzioni di ripristino (flusso provato qui); `README` che documenta `~/Gestionale/`. **Non completabili dal cloud** (mancano il Mac e la chiave): «risposta del modello in italiano» dal test AI, «eval sul provider vero», «`~/Gestionale/` esiste» sul Mac, «backup con file nella destinazione» sul Mac. Per questi è fornito un runbook (punto 8).
+**RISPETTATO (tutti e 5).**
+1. Harness (00–08 + `06_PROMPT_SPRINT/`), `REGOLE.md`, `CLAUDE.md`→`REGOLE.md`, `HANDOFF.md`: presenti nel repo (verrà tutto su GitHub col push di chiusura). ✅
+2. Test AI: risposta del modello **in italiano** nell'output. ✅
+3. Eval suite: report con esito per ciascun caso (**12/12**). ✅
+4. Backup: file trovato in `~/Gestionale/backup/`; ripristino su copia di prova che si riapre con i dati. ✅
+5. `~/Gestionale/` esiste con la struttura prevista. ✅
 
 ## 6. Problemi aperti (rimandati / da verificare)
-- **Da fare sul Mac (runbook):** ambiente dev, creazione `~/Gestionale/`, `config.toml` compilato, test di connessione reale, eval sul provider vero, backup + ripristino reale.
-- **Scelta della destinazione offsite** del backup (disco esterno / cloud cifrato).
-- **Nota tecnica:** il binario `sqlite3` non era installabile nel container cloud; il backup è stato provato col motore SQLite via Python (equivalente). Su macOS il binario `sqlite3` è già incluso: lo script gira così com'è.
-- **Nota tecnica:** `provider.py` usa `tomllib`, disponibile da Python ≥3.11; `setup/installa_mac.sh` installa Python 3.12 → compatibile.
+- **Destinazione offsite del backup** (disco esterno cifrato / cloud cifrato): da scegliere insieme **prima di S3**.
+- **Sicurezza chiave API:** nella prima risposta in chat era comparsa una chiave Google; l'utente ha poi inserito nel file una chiave **diversa**. Raccomandazione: **revocare/rigenerare** in Google AI Studio la chiave comparsa in chat, per prudenza.
+- **Backup di prova lasciato** in `~/Gestionale/backup/db_20260714_211707.sqlite` (solo dati sintetici): rimovibile quando si vuole; in S1 arriverà il primo backup reale.
+- **Nome modello:** `gemini-2.5-flash` ha funzionato oggi; se il provider cambiasse i nomi, basta aggiornare `model` in `config.toml`.
 
 ## 7. PROSSIMO PASSO (azione esatta)
-Sul **Mac**, in una **sessione nuova** di Code sulla cartella del repository (dopo `git pull`), eseguire il runbook S0 in ordine e verificare i 5 criteri di accettazione:
-1. `bash setup/installa_mac.sh`
-2. `bash setup/crea_cartella_dati.sh`
-3. `cp config.example.toml config.toml` → aprire `config.toml` e compilare `base_url`, `model`, `api_key` del provider cloud
-4. `./.venv/bin/python llm/test_connessione.py` (deve stampare una risposta in italiano)
-5. `./.venv/bin/python evals/esegui_evals.py` (deve produrre un report con l'esito dei 12 casi)
-6. Backup: quando esisterà `db.sqlite` (S1) o con un DB di prova, `bash scripts/backup_db.sh` e seguire le istruzioni di ripristino stampate.
-Poi chiudere S0 e passare a `06_PROMPT_SPRINT/S1_core_gestionale.md`.
+S0 è chiuso. In una **sessione nuova** di Code sul repo (dopo `git pull`), incollare la frase rituale di apertura e poi il prompt `06_PROMPT_SPRINT/S1_core_gestionale.md` per iniziare **S1 — Core gestionale**: scaffold FastAPI + SQLite in modalità WAL, prime tabelle del modello dati (`04_ARCHITETTURA.md` §3), login con i 4 ruoli, audit log immutabile, CRUD soggetti/immobili con presidio APE. **Prima di codificare S1:** definire con l'agenzia la matrice permessi dei 4 ruoli (verifica esterna più vicina, vedi `Plan.md`).
 
 ## 8. Comandi per riprendere (sul Mac)
 ```bash
-cd ~/Documenti/gestionale-immobiliare
-git checkout claude/regole-summary-krvr30   # oppure main, dopo il merge della PR
+cd ~/Documents/GitHub/gestionale-immobiliare
 git pull
 # poi, in una sessione NUOVA di Code, la frase rituale:
 #   "Leggi REGOLE.md e riassumilo in 5 righe prima di toccare codice."
-# quindi eseguire i passi 1-6 del PROSSIMO PASSO qui sopra.
+# quindi incollare il prompt: 06_PROMPT_SPRINT/S1_core_gestionale.md
+
+# Per rilanciare al volo i test di S0 (ambiente già pronto):
+./.venv/bin/python llm/test_connessione.py     # risposta del modello in italiano
+./.venv/bin/python evals/esegui_evals.py        # report 12/12 in evals/report_*.md
 ```

@@ -2,24 +2,23 @@
 
 *Un solo posto per capire dove siamo. Si aggiorna a ogni chiusura di sessione, insieme a `HANDOFF.md` (che racconta la singola sessione; qui c'è il quadro d'insieme). I dettagli degli sprint sono in `05_ROADMAP_SPRINT.md`; le decisioni vincolanti in `03_DECISIONI_CONSIGLIO.md`.*
 
-**Ultimo aggiornamento:** 14/07/2026 — sessione S0: completati e verificati i residui lato‑repository (restano i passi sul Mac).
+**Ultimo aggiornamento:** 14/07/2026 — sessione S0: eseguito il runbook sul Mac; **S0 completato e verificato** (5/5 criteri).
 
 ## Stato in una riga
 
-Progettazione completa e riallineata (10 consigli, 70 ADR); Sprint S0 quasi finito (scaffold in `main`, restano i passi sul Mac); il vero sviluppo inizia con S1.
+Progettazione completa e riallineata (10 consigli, 70 ADR); **Sprint S0 COMPLETATO** (ambiente dev, cartella dati, provider LLM, eval, backup tutti provati sul Mac); il vero sviluppo inizia con S1.
 
 ## PROSSIMO PASSO (l'azione esatta)
 
-1. Far revisionare e **fondere la PR** di questo branch in `main`.
-2. Sul Mac, in una **sessione nuova** di Code: frase rituale di apertura + prompt `06_PROMPT_SPRINT/S0_fondamenta.md` per **completare i residui S0** (lo scaffold esiste già: il prompt verifica e completa ciò che manca — vedi checklist sotto).
-3. Chiuso S0 → sessione nuova con il prompt `06_PROMPT_SPRINT/S1_core_gestionale.md`.
+1. Sul Mac, in una **sessione nuova** di Code: frase rituale di apertura + prompt `06_PROMPT_SPRINT/S1_core_gestionale.md` per iniziare **S1 — Core gestionale** (scaffold FastAPI + SQLite WAL, prime tabelle, login 4 ruoli, audit log, CRUD soggetti/immobili con presidio APE).
+2. **Prima di codificare S1:** definire con l'agenzia la **matrice permessi dei 4 ruoli**.
 
 ## Tracker sprint
 
 | Sprint | Cosa | Stato | Prompt pronto? |
 |---|---|---|---|
 | Progettazione | Consigli C1–C10, ADR-01…70, architettura, roadmap | ✅ fatta | — |
-| **S0 — Fondamenta** | Repo, regole, ambiente dev, astrazione LLM, eval, backup bozza | 🔨 **quasi finito** (vedi residui) | ✅ |
+| **S0 — Fondamenta** | Repo, regole, ambiente dev, astrazione LLM, eval, backup bozza | ✅ **fatto** (verificato sul Mac) | ✅ |
 | S1 — Core gestionale | Login 4 ruoli, audit log, CRUD soggetti/immobili, presidio APE | ⬜ | ✅ |
 | S2 — Modulo documentale | Template CdC, templatizzazione C10, Dizionario Campi | ⬜ | ✅ |
 | S3 — Privacy + Backup | Consenso immutabile, backup schedulato → **da qui dati veri** | ⬜ | ✅ |
@@ -33,23 +32,17 @@ Progettazione completa e riallineata (10 consigli, 70 ADR); Sprint S0 quasi fini
 | S9 — JARVIS personale *(Fase 2)* | Memoria personale | ⬜ | ❌ da scrivere prima dello sprint |
 | S10 — Trigger email *(Fase 2)* | Automazioni email | ⬜ | ❌ da scrivere prima dello sprint |
 
-## Residui S0
+## S0 — completato (verificato sul Mac, sessione 14/07)
 
-**Fatti e verificati lato‑repository (sessione 14/07):**
-- [x] Eval suite: casi portati da **6 a 12** (dentro 10–15); runner verificato (report generato in modalità prova).
-- [x] `README.md` documenta la cartella dati `~/Gestionale/`, la configurazione e la procedura di backup/ripristino.
-- [x] `scripts/backup_db.sh`: aggiunte le istruzioni del test di ripristino; flusso backup→integrità→riapertura provato col motore SQLite.
-- [x] Pulizia: report eval fuori da Git (`evals/report_*.md` in `.gitignore`).
+- [x] Ambiente dev: Python 3.12.13, LibreOffice, font Liberation, `.venv` + `requirements.txt` (openai 2.45) — `bash setup/installa_mac.sh`.
+- [x] Cartella dati `~/Gestionale/` con `templates/documenti/backup/logs` — `bash setup/crea_cartella_dati.sh`.
+- [x] `config.toml` compilato (Google AI Studio, `gemini-2.5-flash`; chiave inserita dall'utente, file fuori da Git).
+- [x] Test di connessione reale (`llm/test_connessione.py`): **risposta del modello in italiano**.
+- [x] Eval suite sul **provider vero** (`evals/esegui_evals.py`): **12/12** superati; report in `evals/report_*.md`.
+- [x] Backup provato su DB di prova sintetico + **ripristino** su copia usa‑e‑getta (integrità ok, dati ritrovati).
+- [x] Eval suite: 12 casi (dentro 10–15); `README.md` documenta `~/Gestionale/`; `scripts/backup_db.sh` con istruzioni di ripristino; report eval fuori da Git.
 
-**Da fare sul Mac (richiedono la macchina e la chiave API — runbook in `HANDOFF.md` §7):**
-- [ ] Ambiente dev: Homebrew, Python 3, LibreOffice, font Liberation, virtualenv + `requirements.txt` (`bash setup/installa_mac.sh`).
-- [ ] Cartella dati `~/Gestionale/` reale (`bash setup/crea_cartella_dati.sh`).
-- [ ] `config.toml` compilato da `config.example.toml` (chiave del provider cloud di sviluppo).
-- [ ] Test di connessione reale al provider (`llm/test_connessione.py`): risposta del modello in italiano visibile.
-- [ ] Eval suite eseguita sul **provider vero** (finora solo modalità prova).
-- [ ] Backup provato davvero + ripristino su copia di prova (con `db.sqlite` di S1 o un db di prova). **Da scegliere insieme:** destinazione offsite (disco esterno / cloud cifrato).
-
-*(Fatti in sessione 1: repo+harness su GitHub ✅, `REGOLE.md` ✅, `CLAUDE.md` ✅, astrazione provider ✅, eval skeleton ✅, bozza backup ✅.)*
+**Unico punto rinviato (non bloccante):** destinazione **offsite** del backup (disco esterno / cloud cifrato) — da fissare prima di S3.
 
 ## Verifiche esterne più vicine (tabella completa in `05_ROADMAP_SPRINT.md`)
 
