@@ -29,7 +29,14 @@ ESITO="$(sqlite3 "$COPIA" 'PRAGMA integrity_check;')"
 if [ "$ESITO" = "ok" ]; then
     echo "Backup riuscito e verificato: $COPIA"
     echo "RICORDA (S0): copia questo file a mano su una destinazione offsite cifrata, fuori dall'ufficio."
-    echo "Un backup mai ripristinato non e' un backup: prova il ripristino ogni mese."
+    echo
+    echo "TEST DI RIPRISTINO (un backup mai ripristinato non e' un backup - ADR-06)."
+    echo "Almeno una volta, e ogni mese in produzione, verifica che la copia si riapra:"
+    echo "  1) cp \"$COPIA\" /tmp/prova_ripristino.sqlite"
+    echo "  2) sqlite3 /tmp/prova_ripristino.sqlite 'PRAGMA integrity_check;'   # deve stampare: ok"
+    echo "  3) sqlite3 /tmp/prova_ripristino.sqlite '.tables'                   # elenca le tabelle"
+    echo "  4) rm /tmp/prova_ripristino.sqlite                                  # se ok, cancella la prova"
+    echo "(Le stesse istruzioni sono nel README, sezione 'Backup e ripristino di prova'.)"
 else
     echo "ATTENZIONE: backup creato ma il controllo di integrita' e' FALLITO: $ESITO"
     echo "Non fidarti di questa copia. Riprova e, se fallisce ancora, fermati e chiedi aiuto."

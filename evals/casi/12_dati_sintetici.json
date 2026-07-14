@@ -1,0 +1,6 @@
+{
+  "id": "dati_sintetici",
+  "domanda": "In fase di sviluppo, verso le API cloud possiamo inviare dati veri dei clienti oppure soltanto dati sintetici o anonimizzati? Rispondi con una parola.",
+  "parole_attese": ["sintetic", "anonim"],
+  "nota": "Regola non negoziabile: verso il cloud solo dati sintetici/anonimizzati, mai dati reali (ADR-05)."
+}

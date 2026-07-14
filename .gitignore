@@ -4,3 +4,6 @@ config.toml
 __pycache__/
 *.pyc
 .DS_Store
+
+# Report generati dalla eval suite — sono output, si rigenerano a ogni esecuzione
+evals/report_*.md
