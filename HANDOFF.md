@@ -1,40 +1,36 @@
 # HANDOFF — Riassunto di chiusura sessione
 
 ## 1. Data e numero sessione
-14/07/2026 — **Sessione di progettazione** (pre-sprint), eseguita in Claude Code (ambiente remoto, branch `claude/regole-summary-vcxi65`). Tenuti due Consigli LLM: **C9** e **C10**.
+14/07/2026 — **Sessione di riordino della progettazione** (pre-S1), eseguita in Claude Code (ambiente remoto, branch `claude/affectionate-edison-76fmij`). Eseguito un audit di coerenza dell'intera documentazione (56 agenti in parallelo, ogni segnalazione ri-verificata).
 
 ## 2. Stato attuale del progetto (una riga)
-Progettazione consolidata: **70 ADR** approvati (C1–C10), architettura e roadmap aggiornate; **nessuna riga di codice ancora scritta** (Sprint S0 non iniziato). Lavoro su branch `claude/regole-summary-vcxi65`, **PR aperta verso `main`** (da fondere).
+Progettazione completa e **riallineata** (C1–C10, ADR-01…70); **scaffold S0 già in `main`** (dal 13/07, PR #1) con residui da completare sul Mac; PR #3 (progettazione C9/C10) **fusa in `main`** il 14/07; il cruscotto del progetto vive ora in `Plan.md`.
 
 ## 3. Cosa è stato fatto in questa sessione (con i file)
-- **Due Consigli LLM** via skill `llm-council` (advisor/Chairman/Progettista su **Fable 5**, ricerca web con fonti; certificazione superata — C9: 82 citazioni anonime, C10: 161):
-  - **C9** — modalità Chiamata vocale di JARVIS + **versione mobile** + **Tailscale** + valutazione di 5 tool GitHub (databasement, bklit-ui, anime.js, NVIDIA/personaplex, livekit/agents).
-  - **C10** — **auto-tagging dei moduli importati** + **dizionario canonico** dei tag (auto-compilazione).
-- Record in `08_VERBALI_CONSIGLI/`: `C9_verdetto.md`, `R7_chiamata_mobile_brief.md`, `C10_verdetto.md`, `R8_autocompilazione_brief.md`; indice `LEGGIMI_VERBALI.md` aggiornato.
-- **ADR recepiti** in `03_DECISIONI_CONSIGLIO.md`: **ADR-55…63** (C9) e **ADR-64…70** (C10), indice e tabella riassuntiva aggiornati.
-- `04_ARCHITETTURA.md`: deroga n.2 Tailscale; §4.8 Chiamata; §10 (mobile PWA, hardening Tailscale, stack voce, HITL a voce); §3.15 CampoCanonico (Dizionario); §5.1 templatizzazione assistita; righe stack; range ADR→70; verifiche.
-- `05_ROADMAP_SPRINT.md`: sprint **S-Mob** (mobile PWA, pre-go-live), **S6-bis** (Chiamata, subito dopo S6), **S2** esteso (templatizzazione + dizionario + invariante), ambienti e verifiche esterne C9/C10.
+- **Audit completo di coerenza** della progettazione: 36 incongruenze uniche confermate e corrette.
+- **`CLAUDE.md` ricreato** (testo di `02` sez. A + rimando a `Plan.md`): era stato **cancellato per errore il 13/07** (commit "Delete CLAUDE.md", prevalso nel merge della PR #1) — il caricamento automatico delle regole era quindi inattivo. Il blocco prescritto in `02` sez. A è stato aggiornato in modo identico.
+- **`Plan.md` creato**: cruscotto unico (stato, tracker sprint, residui S0, verifiche esterne, decisioni aperte); il rituale di chiusura in `07` ora chiede di aggiornarlo insieme all'handoff.
+- **Correzioni**: `00_LEGGIMI.md` (mappa file reale, 10 consigli, prompt S0–S8, Claude Design esteso, validatore S6 = Proprietario); `01_PROMPT_MAESTRO.md` (10 consigli, ADR-01…70, file 00–08); `02` (consigli C1–C10; blocco CLAUDE.md); `03` (Fonti C1–C10; nota di superamento parziale sullo scarto "S6b" per ADR-59); `04` (nome file di backup allineato allo script); `05` (Fonte C1–C10; prompt S0–S8; regola 4 → Ollama da S6 per ADR-48; `db.sqlite` nasce in S1; parcheggio con S6-bis/S-Mob); `07` (in Code l'handoff lo salva Claude; rituale esteso a `Plan.md`).
+- **Prompt di sprint allineati agli ADR**: `S0` (script `scripts/backup_db.sh`, `db.sqlite` in S1, dipendenze per sprint); `S1` (presidio APE per **ADR-21**: pratica creabile senza APE + compito bloccante + esenzione con motivo); `S2` (integrato il **Consiglio C10**: Dizionario dei Campi, templatizzazione assistita, invariante di non-alterazione, metriche di gate — ADR-64…70); `S3` (nome script backup); `S6` (prerequisito **ADR-48** Mac Mini+Ollama ed eval locale come done; validatore = **Proprietario** per **ADR-50**; demo perimetrata + pagina «cosa NON fa JARVIS» del C8; task condizionale LLM-assist **ADR-69**).
 
 ## 4. Decisioni prese e perché (breve)
-- **5 tool GitHub: nessuno adottato.** personaplex richiede GPU NVIDIA (no Apple Silicon); livekit è il migliore dei due ma è un secondo servizio sempre acceso → solo riferimento di pattern; databasement/bklit-ui incompatibili/ridondanti; anime.js non necessario (orb/waveform nativi).
-- **Modalità Chiamata: sì**; a voce solo lettura + dettatura proposte in coda, **scritture mai a voce** (HITL a video, ADR-07). Promossa a **canale di primo piano subito dopo S6** (S6-bis, decisione utente), non "Fase 3".
-- **Mobile = PWA responsive** sullo stesso FastAPI via **Tailscale** (trasporto, non autenticazione; login+ruoli restano); deroga dichiarata come per l'SMTP.
-- **Auto-compilazione moduli: idea buona, con correzione chiave** — **l'LLM non scrive mai nel file**: rilevamento/inserimento tag **deterministici**, **invariante di non-alterazione** bloccante, **dizionario canonico** a oggetti (ruolo-binding, campi atomici), LLM solo **classificatore** da S6 e condizionale; nessun file dell'agenzia sul cloud.
+- **Struttura dei file invariata** (niente rinomini/spostamenti): i rituali e i prompt citano i nomi attuali ovunque; riorganizzare avrebbe rotto la harness per pura estetica (REGOLE §2).
+- **`Plan.md` come cruscotto unico**: HANDOFF racconta l'ultima sessione, Plan.md lo stato d'insieme; si aggiornano insieme a ogni chiusura.
+- **Prompt di S6-bis, S-Mob, S9, S10 NON creati ora**: si scrivono prima del rispettivo sprint (niente lavoro "per dopo" — REGOLE §2); tracciato in `Plan.md`.
+- **Nessun file di codice toccato**: l'audit non ha trovato incongruenze interne allo scaffold.
 
 ## 5. Criterio di accettazione della task
-**Rispettato.** La richiesta (valutare tool e idee con `/llm-council` e recepire se approvato) è stata soddisfatta: Consigli tenuti e certificati, decisioni **approvate dall'utente** e scritte negli ADR-55…70. Nessun codice (fase di progettazione).
+**Rispettato.** (1) `CLAUDE.md` esiste ed è conforme al blocco di `02` sez. A; `Plan.md` mostra stato e prossimo passo in una pagina. (2) Le frasi superate ("6 consigli", "ADR-01…ADR-46", "nessuna riga di codice", "backup.sh"…) non compaiono più (verificato con ricerca su tutto il repo). (3) I prompt S1/S2/S6 sono allineati ad ADR-21, ADR-48, ADR-50, ADR-64…70; nessun contenuto estraneo alterato.
 
 ## 6. Problemi aperti (rimandati / da verificare)
-- **Correzione già applicata in questa sessione:** i due brief di ricerca erano stati creati come R5/R6 duplicando la numerazione della sessione 2 (R5_inference, R6_hardware) → **rinominati in `R7`/`R8`** e riferimenti aggiornati ovunque.
-- La **bozza operativa del Progettista di C10** non è stata generata (limite di sessione temporaneo); il verdetto del Chairman è completo e autosufficiente → non bloccante.
-- **Verifiche esterne da calendarizzare:** C9 → DPA Tailscale + registro trattamenti, DPIA leggera (voce+remoto+AI), licenza voce TTS, retention trascrizioni, parere art. 173 CdS; C10 → gate S2 esteso (recall/precision parser + invariante), gate S6 condizionale (LLM-assist), allineamento dizionario alle release RLI. Restano valide le verifiche preesistenti (modello LLM, l.431/98, bake-off OCR, AML, DPIA).
-- **Ereditata dalla sessione 2:** decisione **quale Mac di produzione comprare** prima di S6 (brief `R6_hardware_brief.md`).
-- **Walking skeleton** (RAM/latenza voce sul Mac Mini) resta gate tecnico prima di costruire la Chiamata (S6-bis).
+- **Residui S0** (solo sul Mac dell'utente, checklist completa in `Plan.md`): ambiente dev, `~/Gestionale/`, `config.toml`, test di connessione reale, eval sul provider vero + casi da 6 a 10–15, prova di backup/ripristino.
+- **Verifiche esterne da calendarizzare** (le più vicine in `Plan.md`; tabella completa in `05`).
+- **Decisione hardware** (quale Mac di produzione, brief R6) prima di S6; walking skeleton voce prima di S6-bis.
 
 ## 7. PROSSIMO PASSO (azione esatta)
-1. **Far revisionare e fondere la PR** del branch `claude/regole-summary-vcxi65` in `main` (porta in `main` la progettazione C9/C10).
-2. Poi, in una **sessione nuova** di Code: frase rituale di apertura + prompt `06_PROMPT_SPRINT/S0_fondamenta.md` per avviare lo **Sprint S0 — Fondamenta** (repo/regole/ambiente dev/astrazione LLM/eval skeleton/bozza backup).
-3. In parallelo, **calendarizzare** le verifiche esterne del punto 6 e la **decisione hardware**.
+1. **Far revisionare e fondere la PR** del branch `claude/affectionate-edison-76fmij` in `main`.
+2. Poi, sul Mac, in una **sessione nuova** di Code: frase rituale + prompt `06_PROMPT_SPRINT/S0_fondamenta.md` per **completare i residui S0** (lo scaffold c'è già: il prompt verifica e completa).
+3. Chiuso S0 → sessione nuova con `06_PROMPT_SPRINT/S1_core_gestionale.md` (**inizio del vero sviluppo**).
 
 ## 8. Comandi per riprendere (dopo il merge della PR)
 ```bash

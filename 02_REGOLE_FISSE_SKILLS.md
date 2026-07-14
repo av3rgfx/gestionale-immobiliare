@@ -34,7 +34,8 @@ Lavori sul progetto "Gestionale Immobiliare + JARVIS". Prima di qualsiasi altra 
 leggi il file REGOLE.md nella root di questo repository e rispettalo in ogni momento
 della sessione. Rispondi sempre in italiano. I riferimenti vincolanti del progetto sono
 03_DECISIONI_CONSIGLIO.md (registro ADR) e 04_ARCHITETTURA.md. Lo stato corrente è in
-HANDOFF.md. Non eseguire azioni distruttive senza conferma esplicita dell'utente.
+HANDOFF.md; il cruscotto del progetto (sprint, prossimo passo) è in Plan.md.
+Non eseguire azioni distruttive senza conferma esplicita dell'utente.
 ```
 
 ════════════════ COPIA FINO A QUI ════════════════
@@ -148,7 +149,7 @@ In fase di progettazione sono stati verificati uno per uno gli strumenti ("skill
 
 | Nome citato | Cos'è davvero (verificato) | Come lo usiamo in questo progetto |
 |---|---|---|
-| `karpathy/llm-council` (22,6k★) | Il repo originale NON è una skill: è una web app locale autonoma che richiede OpenRouter (servizio a pagamento). **Però è stato convertito in una skill funzionante** (5 advisor → peer review anonima → chairman) che gira dove esistono sub-agenti paralleli — ed è quella che ha prodotto i 6 consigli di questo progetto (vedi `08_VERBALI_CONSIGLI/`). | **Doppio livello.** Decisioni di routine: il **template ridotto di 10 righe della sezione 3** (perché un consiglio completo sono ~11 agenti: troppo costoso per ogni scelta quotidiana). Decisioni pesanti: il **consiglio completo via skill**, dentro la sessione se l'ambiente ha sub-agenti reali, altrimenti fuori — ai checkpoint elencati qui sotto. |
+| `karpathy/llm-council` (22,6k★) | Il repo originale NON è una skill: è una web app locale autonoma che richiede OpenRouter (servizio a pagamento). **Però è stato convertito in una skill funzionante** (5 advisor → peer review anonima → chairman) che gira dove esistono sub-agenti paralleli — ed è quella che ha prodotto i consigli di questo progetto, C1–C10 (vedi `08_VERBALI_CONSIGLI/`). | **Doppio livello.** Decisioni di routine: il **template ridotto di 10 righe della sezione 3** (perché un consiglio completo sono ~11 agenti: troppo costoso per ogni scelta quotidiana). Decisioni pesanti: il **consiglio completo via skill**, dentro la sessione se l'ambiente ha sub-agenti reali, altrimenti fuori — ai checkpoint elencati qui sotto. |
 | `obra/superpowers` (253k★, attivissimo) | Esiste, ed è una metodologia che gira nativamente su **Claude Code** — cioè proprio l'ambiente che usiamo (sezione Code di Claude Desktop). | **Distillata nella sezione 1 (Disciplina)**: piano scritto → criterio di accettazione → codice → review. |
 | `DietrichGebert/ponytail` (81k★) | Esiste, ma **NON è uno strumento backend**: è un insieme di regole anti-complicazione ("anti-overengineering") valide per qualsiasi progetto. | **È la sezione 2 (Semplicità)**: niente astrazioni premature, niente feature "per dopo", vince la soluzione noiosa che funziona. |
 | `pbakaus/impeccable` (46k★, attivo) | Esiste ed è una vera skill di design per interfacce. Scelta confermata come valida. | **È la sezione 4 (Design)**, l'unica mantenuta praticamente per intero, come checklist operativa per le schermate. |

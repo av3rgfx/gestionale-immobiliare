@@ -1,10 +1,10 @@
 # 05 — Roadmap Sprint — Gestionale Immobiliare + JARVIS
 
-**Stato:** approvata. **Fonte:** verdetti dei consigli C1–C6 e brief R1/R2 (`08_VERBALI_CONSIGLI/`), registro decisioni in `03_DECISIONI_CONSIGLIO.md`.
+**Stato:** approvata. **Fonte:** verdetti dei consigli C1–C10 e brief R1–R8 (`08_VERBALI_CONSIGLI/`), registro decisioni in `03_DECISIONI_CONSIGLIO.md`.
 
 ## Come si legge questa roadmap
 
-- Gli sprint si fanno **in ordine, uno alla volta**. Ogni sprint corrisponde a un prompt in `06_PROMPT_SPRINT/` e tipicamente a più sessioni di lavoro.
+- Gli sprint si fanno **in ordine, uno alla volta**, e tipicamente ognuno richiede più sessioni di lavoro. Gli sprint S0–S8 hanno un prompt pronto in `06_PROMPT_SPRINT/`; i prompt di S6-bis, S-Mob, S9 e S10 si scrivono prima di avviare il rispettivo sprint.
 - I **criteri di done** sono scritti per essere verificati da un non-sviluppatore: se non riesci a verificarli tu, lo sprint non è finito.
 - La colonna "Cosa NON entra" è importante quanto quella "Cosa entra": tutto ciò che non è previsto va nel **parcheggio Fase 2**, senza eccezioni.
 
@@ -24,7 +24,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 1. **Prima il gestionale senza AI.** JARVIS arriva allo sprint S6, prima in sola lettura.
 2. **Backup attivo prima di qualsiasi dato vero:** bozza dello script in S0, sistema completo (schedulazione launchd + offsite + restore test + alert) in S3. Fino ad allora, solo dati finti.
 3. **Mai dati reali dei clienti verso API cloud** in sviluppo: solo dati sintetici o anonimizzati.
-4. **Astrazione provider LLM fin da S0** (`base_url`/`model` configurabili): il passaggio cloud → Ollama locale (S8) deve essere un cambio di configurazione.
+4. **Astrazione provider LLM fin da S0** (`base_url`/`model` configurabili): il passaggio cloud → Ollama locale (da S6, consolidamento in produzione in S8 — ADR-48) deve essere un cambio di configurazione.
 5. **Eval suite dal S0** (su cloud). Prima esecuzione sul **modello locale** = criterio di done di **S6**, ripetuta in S7 e S8 (ADR-48); il **Mac Mini M4 con Ollama va acquistato e configurato prima dell'inizio di S6**. Se l'eval locale fallisce, S7 non parte: si cambia modello, non architettura.
 6. **Verifiche esterne obbligatorie** (vedi sotto) corrono *in parallelo* agli sprint, non dopo.
 
@@ -57,7 +57,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 **Cosa entra:**
 - Repo GitHub inizializzato, `REGOLE.md` scritto/approvato + `CLAUDE.md` che ci punta (doppia fonte, vedi file `02` sezione A).
 - Ambiente dev sul MacBook: Homebrew, Python, LibreOffice, font Liberation, virtualenv, dipendenze base.
-- Cartella dati `~/Gestionale/` con la struttura completa di `04_ARCHITETTURA.md` §2 (`db.sqlite`, `templates/`, `documenti/`, `backup/`, `logs/`).
+- Cartella dati `~/Gestionale/` con la struttura di `04_ARCHITETTURA.md` §2 (`templates/`, `documenti/`, `backup/`, `logs/`; il file `db.sqlite` nasce in S1, con la prima migrazione dello schema).
 - Astrazione provider LLM (SDK OpenAI con `base_url` e `model` da configurazione) + test di connessione al provider cloud.
 - Skeleton eval suite: cartella `evals/` con primi casi di test in italiano e script che produce un report.
 - Bozza script di backup con `sqlite3 .backup` + copia su destinazione offsite (manuale, non ancora schedulato).
@@ -414,7 +414,7 @@ La sezione **Progetti** di Claude Desktop non si usa in nessuno sprint.
 
 ## Parcheggio — Fase 2 (da non iniziare prima del go-live)
 
-Nessuno di questi punti entra negli sprint S0–S8. La Fase 2 inizia dopo il go-live con gli sprint **S9 e S10** qui sopra; tutto il resto si annota qui e basta.
+Nessuno di questi punti entra negli sprint pre-go-live (S0–S8, inclusi S6-bis e S-Mob). La Fase 2 inizia dopo il go-live con gli sprint **S9 e S10** qui sopra (preceduti da S6-bis, se slittato per il gate del walking skeleton — ADR-59); tutto il resto si annota qui e basta.
 
 - **Firma OTP via link** — subordinata a verifica eIDAS.
 - **Tracking aperture email** — solo con informativa e consenso GDPR.

@@ -1,7 +1,7 @@
 # Prompt Sprint S6 — JARVIS v1
 
 > **Come usarlo:** apri una sessione **NUOVA** in **Code** (sezione di Claude Desktop) sulla cartella del repository. Incolla prima la **frase rituale di apertura** (file `02`, sezione C), aspetta il riassunto in 5 righe, poi incolla **tutto** il blocco qui sotto, da `INCOLLA DA QUI` a `FINO A QUI`. Non continuare in una sessione vecchia: una task per sessione.
-> **Prerequisito:** Sprint S5 chiuso. Il gestionale senza AI è completo e funzionante: JARVIS si appoggia su fondamenta solide.
+> **Prerequisito:** Sprint S5 chiuso. Il gestionale senza AI è completo e funzionante: JARVIS si appoggia su fondamenta solide. **Prerequisito ADR-48:** il **Mac Mini M4 con Ollama** è acquistato e configurato PRIMA di iniziare questo sprint, e l'esistenza del modello locale scelto è verificata (nome esatto, pesi, benchmark): la prima esecuzione della eval suite sul modello locale è un criterio di done di S6.
 
 ---
 ==================  INCOLLA DA QUI  ==================
@@ -23,23 +23,27 @@ JARVIS risponde in italiano leggendo il gestionale, propone azioni che io approv
 
 ## TASK ORDINATI
 
-1. **Verifica modello.** Prima di progettare su un modello, verifica con me che esista davvero: nome esatto, pesi, benchmark, licenza (il nome "Gemma 4 26B-A4B" non risulta nelle release note pubbliche; alternative note: Gemma 3 27B, Qwen 27B Q4). Per questo sprint lavoriamo col provider cloud di sviluppo, già configurato: il modello locale arriva in S8. Nota tecnica da rispettare: l'API di Ollama non supporta `tool_choice` — il gateway non deve dipendere da quel parametro.
-2. **Prototipo schermata chat in Claude Design.** Mi guidi ad aprire **Claude Design** per disegnare il prototipo della schermata chat di JARVIS e del pannello approvazioni (diff prima/dopo, pulsante conferma, stato "skill in attesa"), applicando la checklist Design di `REGOLE.md`. Lo faccio provare a segretaria/agenti con domande reali ("quali pratiche scadono questo mese?"), raccolgo i commenti, iteriamo finché non lo approvo, poi handoff a Code per l'implementazione. Prototipo approvato salvato nel repo.
-3. **Chat nell'app.** Interfaccia chat semplice (una domanda, una risposta, cronologia della conversazione) integrata nel gestionale, in italiano, implementata dal prototipo approvato.
+1. **Verifica modello.** Prima di progettare su un modello, verifica con me che esista davvero: nome esatto, pesi, benchmark, licenza (il nome "Gemma 4 26B-A4B" non risulta nelle release note pubbliche; alternative note: Gemma 3 27B, Qwen 27B Q4). In sviluppo si lavora col provider cloud (solo dati sintetici), ma il **Mac Mini M4 con Ollama dev'essere già configurato** (prerequisito ADR-48): la eval suite va eseguita anche sul modello locale entro la fine di questo sprint. Nota tecnica da rispettare: l'API di Ollama non supporta `tool_choice` — il gateway non deve dipendere da quel parametro.
+2. **Prototipo schermata chat in Claude Design.** Mi guidi ad aprire **Claude Design** per disegnare il prototipo della schermata chat di JARVIS e del pannello approvazioni (diff prima/dopo, pulsante conferma, stato "skill in attesa"), applicando la checklist Design di `REGOLE.md`. Il validatore del prototipo sono **io, il Proprietario** — la chat è riservata al mio ruolo (ADR-50), non a segretaria/agenti: lo provo io con domande reali ("quali pratiche scadono questo mese?"), iteriamo finché non lo approvo, poi handoff a Code per l'implementazione. Prototipo approvato salvato nel repo.
+3. **Chat nell'app.** Interfaccia chat semplice (una domanda, una risposta, cronologia della conversazione) integrata nel gestionale, in italiano, implementata dal prototipo approvato; visibile al **solo ruolo Proprietario** (ADR-50), mentre la coda «Da approvare» è una schermata separata con visibilità per ruolo.
 4. **Tool read-only.** Elenco **chiuso** di funzioni deterministiche di lettura che JARVIS può chiamare (cerca soggetto, elenca scadenze del mese, stato pratica, movimenti di una pratica…), che rispettano i permessi del ruolo di chi interroga. Ogni funzione valida i parametri. Niente SQL libero scritto dal modello.
 5. **Switch provider.** La chat usa il provider da configurazione; fammi cambiare `base_url`/`model` e verificare che tutto continua a funzionare senza toccare codice.
 6. **HITL con sostanza.** Per ogni azione di scrittura che JARVIS propone (solo tramite funzioni approvate, flusso di `04_ARCHITETTURA.md` §4.3): mostrami un **diff leggibile** prima/dopo dei dati chiave, chiedi conferma esplicita, registra tutto nell'audit log (chi ha approvato, quando, quale versione di modello).
 7. **Libreria skill Markdown.** JARVIS può proporre una skill come file `.md` (procedura operativa in italiano, es. "come preparare il pacchetto pratica per una locazione turistica"); la proposta resta in stato "in attesa" finché io non la approvo; all'approvazione viene committata in Git. Nessuna skill si attiva da sola. Nessuna skill può contenere né invocare codice.
-8. **Eval suite italiana.** Estendi la eval suite di S0 con casi realistici del gestionale (domande tipiche di segretaria/agente), eseguila, archivia il report nel repo con data e modello usato.
+8. **Eval suite italiana.** Estendi la eval suite di S0 con casi realistici del gestionale (domande tipiche dell'operatività dell'agenzia), eseguila **sia sul provider cloud sia sul modello locale** (Ollama sul Mac Mini — ADR-48), archivia i report nel repo con data e modello usato. Se l'eval locale fallisce, S7 non parte: si cambia modello, non architettura.
+9. **LLM-assist alla templatizzazione (condizionale — ADR-69).** Solo se i log di S2 mostrano che lo script deterministico risolve meno dell'85–90% dei campi: aggiungi nel wizard la **pre-selezione del tag** suggerita dall'LLM (l'LLM classifica, il codice scrive — mai il contrario, e mai moduli reali sul cloud — ADR-70). Altrimenti salta questo task e annotalo nell'handoff.
+10. **Demo e perimetro (verbale C8).** Prepara una **demo perimetrata** per me (Proprietario) e la pagina **«cosa NON fa JARVIS»**: la rivedo e la approvo per iscritto (mitigazione del gap di aspettative).
 
 ## CRITERI DI ACCETTAZIONE (li verifico io)
 
-- [ ] Il prototipo della chat è stato approvato da me dopo il feedback di segretaria/agenti, ed è salvato nel repo.
+- [ ] Il prototipo della chat è stato validato e approvato da me (Proprietario, unico utente della chat — ADR-50), ed è salvato nel repo.
 - [ ] Chiedo in chat "quali pratiche scadono questo mese?": la risposta corrisponde a ciò che vedo nella dashboard.
 - [ ] Chiedo a JARVIS di modificare un dato: vedo il diff prima/dopo e nulla cambia finché non approvo; dopo l'approvazione trovo tutto nell'audit log.
 - [ ] JARVIS propone una skill: resta "in attesa" e non ha alcun effetto finché non la approvo io.
 - [ ] Cambio provider nella configurazione: la chat continua a funzionare senza modifiche al codice.
 - [ ] Lancio la eval suite: report con esito per caso, archiviato nel repo.
+- [ ] La eval suite gira anche **sul modello locale** (Ollama sul Mac Mini) e il report è archiviato; se fallisce, S7 non parte: si cambia modello, non architettura (ADR-48).
+- [ ] Ho ricevuto la **demo perimetrata** e ho approvato **per iscritto** la pagina «cosa NON fa JARVIS» (verbale C8).
 - [ ] Provo a chiedere a JARVIS qualcosa fuori dai suoi tool: risponde che non può, invece di improvvisare.
 
 ## ISTRUZIONI OPERATIVE PER ME (utente)
