@@ -41,9 +41,9 @@ Stack unico, tecnologie mature ("noiose") e installabili via `pip`/`brew` (ADR-0
 | Email | **SMTP** (provider a scelta: es. Brevo/Gmail/Workspace) | Canale unico notifiche v1 con SPF/DKIM/DMARC |
 | Frontend mobile | **PWA responsive** (stessa app FastAPI server-rendered + manifest) | Uso dal telefono del Proprietario; niente app nativa (ADR-55) |
 | Accesso remoto | **Tailscale** (WireGuard mesh) + `tailscale cert`/`serve` per HTTPS tailnet-only | Raggiungere il Mac da fuori senza esporlo a Internet (ADR-56/57) |
-| STT (voce, Fase 3) | **whisper.cpp** large-v3-turbo (Core ML/ANE) | Ascolto locale della modalità Chiamata (ADR-61) |
-| TTS (voce, Fase 3) | `say`/AVSpeech → **Piper** it_IT-paola → **Kokoro-82M** (scelta con demo audio) | Voce italiana locale; XTTS vietato (ADR-61) |
-| Orchestrazione voce (Fase 3) | **Glue custom** in FastAPI (WebSocket), processi voce **on-demand** | Nessun framework né secondo servizio sempre acceso (ADR-61) |
+| STT (voce, S6-bis) | **whisper.cpp** large-v3-turbo (Core ML/ANE) | Ascolto locale della modalità Chiamata (ADR-61) |
+| TTS (voce, S6-bis) | `say`/AVSpeech → **Piper** it_IT-paola → **Kokoro-82M** (scelta con demo audio) | Voce italiana locale; XTTS vietato (ADR-61) |
+| Orchestrazione voce (S6-bis) | **Glue custom** in FastAPI (WebSocket), processi voce **on-demand** | Nessun framework né secondo servizio sempre acceso (ADR-61) |
 
 **Cartella dati unica** — tutto ciò che conta vive in un solo posto:
 
@@ -227,7 +227,7 @@ JARVIS propone → funzione deterministica valida OGNI campo
 - Azioni v1: *crea Task*; *notifica a destinatari fissi hardcoded*. Default: un solo digest giornaliero aggregato; notifica immediata solo per regole «urgente».
 - **Trigger email (S10, ADR-54)**: IMAP polling dallo scheduler, **solo mittenti in allowlist**; credenziali solo in **Keychain** (casella dedicata o app password revocabile); la sintesi gira **senza alcun tool esposto all'LLM**; HTML→testo, link non cliccabili, banner «riassunto AI di contenuto non verificato»; retention riassunti ≤ 30 giorni; ogni azione nata da email ripassa da HITL. L'email è input non fidato ("lethal trifecta" — brief R4).
 
-### 4.8 Modalità Chiamata (voce) — Fase 3 (ADR-59, ADR-60, ADR-61)
+### 4.8 Modalità Chiamata (voce) — S6-bis, subito dopo S6 (ADR-59, ADR-60, ADR-61)
 JARVIS parla e ascolta a mani libere (uso alla guida), ma resta **bocca e orecchie**: a voce **solo** Q&A read-only + **dettatura di proposte che finiscono in coda**; l'esecuzione di scritture a voce è **vietata** (un "sì" alla guida = approvazione cieca, ADR-07). Il gate di scrittura è **nel codice** (token di approvazione generato solo dalla UI dopo il render del diff, non forgiabile dall'LLM); niente "approva tutto". La trascrizione vocale è **input non fidato** (come le email IMAP, ADR-60): contesto mai istruzioni, loggata nell'evidence pack, **read-back verbale** dei campi chiave, nessun audio persistito, attivazione esplicita push-to-talk (mai wake word), **no autenticazione vocale** (art. 9 GDPR). Dettaglio di stack, accesso e HITL in **§10**.
 
 ---
@@ -411,7 +411,7 @@ Stessa app FastAPI server-rendered, resa **responsive** (mobile-first sulle sche
 ### 10.2 Accesso remoto via Tailscale (ADR-56, ADR-57)
 Tailscale (WireGuard mesh) è il **trasporto, mai l'autenticazione**. Difese obbligatorie a strati: ACL **default-deny** (solo il nodo-telefono del Proprietario → porta HTTPS dell'app), device approval, Tailnet Lock, MFA, key expiry; **Funnel/exit-node/subnet-routing vietati, zero port-forwarding**; app in bind solo su `localhost` + `100.x`. **Login + ruoli (ADR-08, ADR-50) restano obbligatori sopra la VPN.** Ogni accesso remoto in AuditLog con identità del nodo + alert su nodo nuovo. Deroga n.2 al tutto-locale dichiarata in §1 (ADR-56): DPA + registro trattamenti; Headscale come exit strategy documentata, non implementata. **Runbook telefono perso/rubato** (ADR-58): revoca nodo, invalidazione sessioni, rotazione password, verifica audit, valutazione art. 33 GDPR in 72h — **testato una volta** come il restore test.
 
-### 10.3 Stack voce locale (ADR-61) — Fase 3
+### 10.3 Stack voce locale (ADR-61) — S6-bis
 ```
 Telefono (browser/PWA): push-to-talk mic ──WebSocket(Tailscale)──► FastAPI
         │                                                              │
