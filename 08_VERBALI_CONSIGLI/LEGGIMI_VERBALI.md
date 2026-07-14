@@ -1,6 +1,6 @@
 # Verbali dei consigli (tracciabilità delle decisioni)
 
-Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM Council: 5 advisor → peer review anonima → chairman) tenuti durante la progettazione, più i 2 brief di ricerca fattuale che li hanno alimentati.
+Questa cartella contiene i **verbali integrali dei 10 consigli** (metodologia LLM Council: 5 advisor → peer review anonima → chairman) tenuti durante la progettazione, più gli 8 brief di ricerca fattuale che li hanno alimentati.
 
 | File | Contenuto |
 |---|---|
@@ -12,11 +12,15 @@ Questa cartella contiene i **verbali integrali dei 6 consigli** (metodologia LLM
 | `C6_verdetto.md` | Ruolo Proprietario, movimenti, compliance |
 | `C7_verdetto.md` | Revisione della progettazione prima dello sviluppo (Sprint 0): ADR-47/48/49 |
 | `C8_verdetto.md` | JARVIS assistente personale del Proprietario (memoria, procedure, automazioni): ADR-50…54 |
+| `C9_verdetto.md` | Modalità Chiamata JARVIS, versione mobile, Tailscale, 5 tool GitHub: ADR-55…63 |
+| `C10_verdetto.md` | Auto-tagging dei moduli importati e dizionario canonico dei tag: ADR-64…70 |
 | `R1_skill_brief.md` | Verifica fattuale delle skill citate (con fonti) |
 | `R2_stack_brief.md` | Verifica fattuale stack tecnico e normativa (con fonti) |
 | `R3_memoria_brief.md` | Verifica fattuale memoria personale/RAG locale per JARVIS (con fonti) |
 | `R4_automazioni_brief.md` | Verifica fattuale motori di automazione e pattern sicuri (con fonti) |
 | `R5_inference_brief.md` | Verifica fattuale engine DS4/antirez e quantizzazione dinamica (con fonti) |
 | `R6_hardware_brief.md` | Verifica fattuale hardware di produzione: Mac, alternative, prezzi 2026 (con fonti) |
+| `R7_chiamata_mobile_brief.md` | Verifica fattuale voce realtime locale, mobile/PWA, Tailscale (con fonti) |
+| `R8_autocompilazione_brief.md` | Verifica fattuale templatizzazione documenti, rilevamento campi, vocabolari canonici, LLM classificatore (con fonti) |
 
-Il registro decisioni operativo è `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-46): in caso di conflitto tra questi verbali e gli ADR, **vincono gli ADR**.
+Il registro decisioni operativo è `03_DECISIONI_CONSIGLIO.md` (ADR-01…ADR-70): in caso di conflitto tra questi verbali e gli ADR, **vincono gli ADR**.

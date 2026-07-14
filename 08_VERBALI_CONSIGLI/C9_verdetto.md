@@ -3,7 +3,7 @@
 > **Data:** 2026-07-13 · **Metodo:** skill `llm-council` (protocollo Karpathy adattato).
 > **Partecipanti:** 5 advisor paralleli con lenti diverse (Architetto pragmatico, Avvocato del diavolo, Compliance/legale, Operatività utente, Dati e sicurezza) → peer review anonima incrociata (R1–R4) → Chairman → Progettista. Advisor/Chairman/Progettista su **Fable 5**; fase di ricerca fatti su modello forte con ricerca web.
 > **Posta in gioco:** valutare la richiesta di una "modalità Chiamata" vocale in tempo reale per JARVIS e di 5 tool GitHub proposti dall'utente (databasement, bklit-ui, anime.js, NVIDIA/personaplex, livekit/agents), nella cornice — decisa dall'utente — di una **versione mobile completa del gestionale usata dal telefono via Tailscale**.
-> **Fonti fatti:** brief di ricerca `R5_chiamata_mobile_brief.md` (stesso consiglio).
+> **Fonti fatti:** brief di ricerca `R7_chiamata_mobile_brief.md` (stesso consiglio).
 >
 > **Certificazione del meccanismo (prima convocazione in ambiente Claude Code):** superata — (1) 5 opinioni da lavori separati e paralleli; (2) peer review che cita le altre opinioni per **etichetta anonima** (R1–R4, 82 citazioni); (3) Chairman con **divergenze esplicite** dichiarate voce per voce. Il consiglio completo via skill è quindi valido in questo ambiente.
 >

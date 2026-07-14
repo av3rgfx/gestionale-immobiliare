@@ -3,7 +3,7 @@
 > **Data:** 2026-07-14 · **Metodo:** skill `llm-council` (protocollo Karpathy adattato).
 > **Partecipanti:** 5 advisor paralleli con lenti diverse (Architetto deterministic-first, Avvocato del diavolo, Compliance documentale/legale, Operatività segretaria, Dati e ontologia) → peer review anonima incrociata (R1–R4) → Chairman. Advisor e Chairman su **Fable 5**; fase di ricerca fatti su modello forte con ricerca web.
 > **Posta in gioco:** valutare l'idea dell'utente di templatizzazione semi-automatica dei moduli importati (LLM/script che inserisce tag stile `{{nome_locatore}}`) e di un "dizionario" di tag anti-drift, poi l'auto-compilazione dai dati.
-> **Fonti fatti:** brief di ricerca `R6_autocompilazione_brief.md` (stesso consiglio).
+> **Fonti fatti:** brief di ricerca `R8_autocompilazione_brief.md` (stesso consiglio).
 > **Certificazione:** superata (opinioni parallele separate; peer review con citazioni per etichetta anonima R1–R4; Chairman con divergenze esplicite).
 > **Nota di esecuzione:** l'ultimo agente (bozza operativa del Progettista) non è stato generato per un limite di sessione temporaneo; il verdetto del Chairman è completo e autosufficiente (contiene ADR proposti, collocazione e gate).
 >

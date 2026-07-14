@@ -1,4 +1,4 @@
-# BRIEF RICERCA R5 — Modalità Chiamata JARVIS, versione mobile, Tailscale (fatti verificati con fonti)
+# BRIEF RICERCA R7 — Modalità Chiamata JARVIS, versione mobile, Tailscale (fatti verificati con fonti)
 
 > A supporto del Consiglio C9. Ricerca web condotta il 2026-07-13. Distingue **fatti verificati** da ipotesi. Il vincolo di riferimento è: tutto-locale sul **Mac Mini M4 24GB Apple Silicon (nessuna GPU NVIDIA)**, stack "noioso", nessuna dipendenza senza permesso.
 

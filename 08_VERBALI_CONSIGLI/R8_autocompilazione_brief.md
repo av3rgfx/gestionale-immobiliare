@@ -1,4 +1,4 @@
-# BRIEF RICERCA R6 — Auto-tagging moduli + dizionario canonico (fatti verificati con fonti)
+# BRIEF RICERCA R8 — Auto-tagging moduli + dizionario canonico (fatti verificati con fonti)
 
 > A supporto del Consiglio C10. Ricerca web del 2026-07-14. Distingue **fatti verificati** da ipotesi operative. Stack di riferimento: FastAPI + SQLite + **docxtpl** (Jinja2 in DOCX) + LibreOffice; principio deterministic-first; ADR-02 (LLM mai autore di testo legale).
 

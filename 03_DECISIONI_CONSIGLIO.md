@@ -265,7 +265,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ## Consiglio C9 — Modalità Chiamata JARVIS, versione mobile e accesso via Tailscale
 
-**Posta in gioco:** la richiesta del Proprietario di una "modalità Chiamata" vocale in tempo reale per JARVIS (uso a mani libere, es. alla guida) e la valutazione di 5 tool GitHub proposti, nella cornice — **decisa dall'utente** — di una **versione mobile completa del gestionale** usata dal telefono ovunque tramite **Tailscale**. Evidenze: brief `R5_chiamata_mobile_brief.md`. Verbale integrale (con certificazione del meccanismo del consiglio e bozza di progettazione di Fable 5 in appendice): `08_VERBALI_CONSIGLI/C9_verdetto.md`.
+**Posta in gioco:** la richiesta del Proprietario di una "modalità Chiamata" vocale in tempo reale per JARVIS (uso a mani libere, es. alla guida) e la valutazione di 5 tool GitHub proposti, nella cornice — **decisa dall'utente** — di una **versione mobile completa del gestionale** usata dal telefono ovunque tramite **Tailscale**. Evidenze: brief `R7_chiamata_mobile_brief.md`. Verbale integrale (con certificazione del meccanismo del consiglio e bozza di progettazione di Fable 5 in appendice): `08_VERBALI_CONSIGLI/C9_verdetto.md`.
 
 ### Decisioni adottate
 
@@ -305,7 +305,7 @@ Due premesse del consiglio C2 sono risultate errate o superate e vengono corrett
 
 ## Consiglio C10 — Auto-tagging dei moduli importati e Dizionario dei tag
 
-**Posta in gioco:** trasformare in modo affidabile un modulo importato (doc/docx/odt) in un template con segnaposti e alimentare l'auto-compilazione dai dati canonici, **senza che l'LLM alteri il testo legale** (ADR-02). Evidenze: brief `R6_autocompilazione_brief.md`. Verbale integrale: `08_VERBALI_CONSIGLI/C10_verdetto.md`.
+**Posta in gioco:** trasformare in modo affidabile un modulo importato (doc/docx/odt) in un template con segnaposti e alimentare l'auto-compilazione dai dati canonici, **senza che l'LLM alteri il testo legale** (ADR-02). Evidenze: brief `R8_autocompilazione_brief.md`. Verbale integrale: `08_VERBALI_CONSIGLI/C10_verdetto.md`.
 
 ### Decisioni adottate
 
